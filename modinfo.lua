@@ -24,15 +24,16 @@ keylist[#keylist + 1] = {description = "Disable", data = false}
 configuration_options =
 {
     {
-        name = "Language",
+        name = "language",
         hover = "Choose your language\n选择您使用的语言",
         label = "Language",
         options =
         {
-            {description = "English", data = "English", hover = "English"},
-            {description = "简体中文", data = "Chinese", hover = "简体中文"},
+            {description = "Auto", data = "auto", hover = "Auto detect, may not work"},
+            {description = "English", data = "english", hover = "English"},
+            {description = "简体中文", data = "chinese_s", hover = "Simplified Chinese"},
         },
-        default = "English",
+        default = "auto",
     },
     {
         name = "key",

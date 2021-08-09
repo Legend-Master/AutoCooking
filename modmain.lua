@@ -8,14 +8,14 @@ local function GetKeyFromConfig(config)
     return type(key) == "number" and key or -1
 end
 
-local language              = GetModConfigData("Language")
+local language              = GetModConfigData("language")
 local last_recipe_mode      = GetModConfigData("last_recipe_mode")
 local cookpots_num_divisor  = GetModConfigData("cookpots_num_divisor")
 local laggy_mode            = GetModConfigData("laggy_mode")
 
 local start_key             = GetKeyFromConfig("key")
 local key_2                 = GetKeyFromConfig("key_2")
-local lastest_recipe_key    = GetKeyFromConfig("last_recipe_key")
+local last_recipe_key       = GetKeyFromConfig("last_recipe_key")
 local laggy_mode_key        = GetKeyFromConfig("laggy_mode_key")
 
 local laggy_mode_on = laggy_mode == "on"
@@ -56,8 +56,8 @@ local cookware_morph = {
 local ac_thread
 local harvestinglist = {}
 
-local lastest_recipe
-local lastest_recipe_type
+local last_recipe
+local last_recipe_type
 
 local ismasterchef = false
 
@@ -90,9 +90,9 @@ local CHINESE_STRING = {
 }
 
 local ENGLISH_STRING = {
-    ["no_backpack"] = "Haven't backpack",
+    ["no_backpack"] = "No backpack equipped",
     ["no_previous_recipe"] = "No previous cooking recipe found",
-    ["unable_cook_last_recipe"] = "Unable to cook lastest recipe",
+    ["unable_cook_last_recipe"] = "Unable to cook last recipe",
     ["start"] = "Auto Cooking : On",
     ["stop"] = "Auto Cooking : Off",
     ["not_valid_items"] = "Wrong items",
@@ -100,15 +100,24 @@ local ENGLISH_STRING = {
     ["no_portablespicer"] = "Didn't find portablespicer",
     ["no_cookpot"] = "Didn't find cookpot",
     ["cant_move_out_items"] = "Can't move out item from cookpot",
-    ["harvest_only"] = "Material run out,harvest mode on",
-    ["harvest_only_endless"] = "Endless harvest mode on",
-    ["last_recipe"] = "Cooking lastest recipe",
+    ["harvest_only"] = "Material run out, Harvest Mode On",
+    ["harvest_only_endless"] = "Endless Harvest Mode On",
+    ["last_recipe"] = "Cooking last recipe",
     ["laggy_mode_on"] = "Auto Cooking : Laggy Mode On",
     ["laggy_mode_off"] = "Auto Cooking : Laggy Mode Off",
 }
 
+if language == "auto" then
+    local langs = {
+        zh = "chinese_s",
+        chs = "chinese_s",
+        en = "english",
+    }
+    language = langs[LanguageTranslator.defaultlang] or "english"
+end
+
 local function GetString(stringtype)
-    if language == "Chinese" then
+    if language == "chinese_s" then
         return CHINESE_STRING[stringtype]
     else
         return ENGLISH_STRING[stringtype]
@@ -455,7 +464,7 @@ local MAX_HARVEST_DIST = 64
 local function GetHarvestTarget()
     for i = #harvestinglist, 1, -1 do
         local cookware = harvestinglist[i]
-        -- A valid harvest target should be valid & cooking/donecooking/can't open & not too far away
+        -- A valid harvest target should be valid & cooking/donecooking/can't be opened & not too far away
         if not (
             IsValidEntity(cookware)
             and not CanRummage(cookware)
@@ -602,6 +611,9 @@ end
 
 local function AutoCooking(items, cookpots)
 
+    last_recipe = items
+    last_recipe_type = cookpots and COOKING or SEASONING
+    
     local cookware_type = cookpots and "cookpot" or "portablespicer"
 
     ac_thread = ThePlayer:StartThread(function()
@@ -685,7 +697,7 @@ end
 
 local function GetStartingItems(use_last_recipe)
     if use_last_recipe then
-        return lastest_recipe, use_last_recipe
+        return last_recipe, use_last_recipe
     end
     -- Cookware -> Backpack -> Inventory
     local items, cooking_type = CheckCookwareItems()
@@ -720,7 +732,6 @@ local function Start(use_last_recipe)
                 Say(GetString(ismasterchef and "no_portablespicer" or "no_masterchef"))
                 return false
             end
-            lastest_recipe,lastest_recipe_type = items, cooking_type
             AutoCooking(items)
             return true
         -- else
@@ -763,8 +774,6 @@ local function Start(use_last_recipe)
                     break
                 end
             end
-            lastest_recipe = items
-            lastest_recipe_type = cooking_type
             AutoCooking(items, cookpots)
             return true
         else
@@ -784,10 +793,10 @@ if last_recipe_mode == "last" then
             params[v].widget.buttoninfo.fn = function(inst, ...)
                 local items = inst.replica.container and inst.replica.container:GetItems()
                 if items and type(items) == "table" then
-                    lastest_recipe = {}
-                    lastest_recipe_type = inst.prefab == "portablespicer" and SEASONING or COOKING
+                    last_recipe = {}
+                    last_recipe_type = inst.prefab == "portablespicer" and SEASONING or COOKING
                     for slot, item in pairs(items) do
-                        table.insert(lastest_recipe, item)
+                        table.insert(last_recipe, item)
                     end
                 end
                 return OldWidgetFn(inst, ...)
@@ -832,24 +841,24 @@ ENV.AddComponentPostInit("playercontroller", function(self)
 end)
 
 TheInput:AddKeyUpHandler(start_key, Start)
-TheInput:AddKeyUpHandler(lastest_recipe_key, function()
+TheInput:AddKeyUpHandler(last_recipe_key, function()
 
     if not InGame() then return end
 
-    if not lastest_recipe then
+    if not last_recipe then
         Say(GetString("no_previous_recipe"))
         return
     end
     if ac_thread then StopCooking() return end
 
-    if not HaveEnoughItems(lastest_recipe) then
+    if not HaveEnoughItems(last_recipe) then
         --Say(GetString("unable_cook_last_recipe"))
         HarvestOnly(true)
         return
     end
 
     Say(GetString("last_recipe"))
-    Start(lastest_recipe_type)
+    Start(last_recipe_type)
 end)
 
 if laggy_mode == "in_game" then
