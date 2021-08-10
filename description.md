@@ -1,6 +1,6 @@
-This mod is still in development, bugs might be expected.
+GitHub Repo: https://github.com/Legend-Master/AutoCooking
 
-[h1]Usage[/h1]
+[h1]Features[/h1]
 [list]
 [*]Press start button to start auto cooking by using 2/4 slots of items from cookpot/seasoning station/backpack/inventory
 [*]If there're no items available to start cooking, pressing start button will let it go in to "endless harvest mode" which will harvest all cookpots/seasoning stations near you and "endless"
@@ -13,7 +13,7 @@ This mod is still in development, bugs might be expected.
 
 [h1]Configable Options[/h1]
 [list]
-[*]Language：English / Chinese (Default: English)
+[*]Language: Auto / English / Chinese Simplified
 [*]Key to start the cooking (Default: F5)
 [*]Key to start the cooking lastest recipe (Default: Home)
 [*]lastest recipe by auto cooking or all cooking actions (Default: auto cooking only)
@@ -28,16 +28,16 @@ This mod is still in development, bugs might be expected.
 
 Special Thanks：秋一 for testing and suggesting those amazing ideas
 
-[spoiler]I was too lazy to write this English description, it does take a long time, sorry about that[/spoiler]
 
+GitHub Repo: https://github.com/Legend-Master/AutoCooking
 
-
-mod还在开发，有可能会有bug
-
-[h1]使用方法[/h1]
+[h1]功能[/h1]
 [list]
 [*]按下启动按键后会按照背包前4格/2格的物品选择锅或者调料站（如果没有物品/无背包/物品不匹配会使用物品栏前4/2个连续的格子里面的物品，如果依然没有将会启动无尽收获模式，收获附近所有烹饪锅和调料站内的物品）（大厨会优先使用大厨自己的锅，非大厨不会用大厨锅和调料站）（如果锅/调料站里有物品会先把物品拿出来再开始做），填充材料做饭并收获，前4格/2格的物品用完之后会使用物品栏（包括打开的冰箱或箱子等容器）里的物品进行填充。
+[*]在需要的锅或调料站里放好需要/足够的材料后按下启动键可以按照该容器里的物品进行烹饪
 [*]如果是做饭的话会判断做饭所需时间选择对应的锅子数量（比如做失败料理只选3口大厨锅，肉丸会选8口）
+[*]当没有可以烹饪/收获的锅子的情况下，会自动寻找最早烹饪过的锅子，走向它，等待收获
+[*]在填充锅子的同时会自动尝试去收获距离足够近的锅子
 [*]按下启动烹饪上个配方的按键后会使用上一次烹饪的配方填充材料（可设置）
 [*]中途想要取消做饭可以通过移动、攻击键、操作键以及鼠标键取消（使用的是action queue reborn的代码，取消方式和排队论一样）
 [*]如果延迟很高，mod持续开关锅，请调到高延迟模式
@@ -46,7 +46,7 @@ mod还在开发，有可能会有bug
 
 [h1]可设置选项[/h1]
 [list]
-[*]语言：英文 / 中文
+[*]语言：自动 / 英文 / 中文
 [*]启动自动烹饪的按键（默认F5）
 [*]启动烹饪上次配方的按键（默认HOME）
 [*]烹饪上次配方使用的配方是上次自动做饭的配方还是上次使用厨具烹饪过的配方（默认使用上次自动做饭的配方）
@@ -56,21 +56,7 @@ mod还在开发，有可能会有bug
 
 [h1]已知问题（我也不知道这些怎么解决）[/h1]
 [list]
-[*]在烹饪过程中快捷丢弃物品或者使用物品（包括检查）可能会停止烹饪，如果遇到可以按一下重复上个配方按键接着做 --1.01版本解决
 [*]鼠标上拿着东西的时候会暂停烹饪（如果拿着东西开启是开不开的）
-[*]在无洞穴主机存档无效 --1.01版本解决
-[/list]
-
-[h1]重大更新日志[/h1]
-[list]
-[h2]2020.4.25[/h2]
-[list]
-[*]现在支持直接在锅里放好需要烹饪的食物，然后按自动做饭键，按照放好的配方自动烹饪了
-[*]现在会在没有可以烹饪/收获的锅子的情况下找最早自动烹饪的锅子，走向它，等待收获
-[*]现在可以在填充锅子的同时尝试去收获距离足够近的锅子了
-[/list]
 [/list]
 
 特别鸣谢：秋一提供思路和指导，以及女校成员一起帮忙测试mod
-
-[spoiler]I was too lazy to write an English description, before it was done, pls use translator, sorry about that. :)[/spoiler]
