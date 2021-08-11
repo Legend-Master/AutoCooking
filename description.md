@@ -26,7 +26,7 @@ GitHub Repo: https://github.com/Legend-Master/AutoCooking
 [*]When you hold something on you mouse, it will pause the cooking, and I have no idea how to fix it since you can't do a rummage action when you have the activeitem (& It wouldn't start cooking when something is on you mouse)
 [/list]
 
-Special Thanks：秋一 for testing and suggesting those amazing ideas
+Special Thanks：秋一(Civi) for testing and suggesting those amazing ideas
 
 
 GitHub Repo: https://github.com/Legend-Master/AutoCooking
@@ -59,4 +59,4 @@ GitHub Repo: https://github.com/Legend-Master/AutoCooking
 [*]鼠标上拿着东西的时候会暂停烹饪（如果拿着东西开启是开不开的）
 [/list]
 
-特别鸣谢：秋一提供思路和指导，以及女校成员一起帮忙测试mod
+特别鸣谢：秋一(Civi)提供思路和指导，以及女校成员一起帮忙测试mod

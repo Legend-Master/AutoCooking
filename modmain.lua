@@ -438,11 +438,11 @@ local function TakeOutItemsInCookware(cookware)
 end
 
 local function StopCooking()
-    Say(GetString("stop"))
     if ac_thread then
+        Say(GetString("stop"))
         ac_thread:SetList(nil)
+        ac_thread = nil
     end
-    ac_thread = nil
 end
 
 local function GetClosestTarget(ents)
@@ -815,6 +815,8 @@ end
 
 ENV.AddComponentPostInit("playercontroller", function(self)
     if self.inst ~= ThePlayer then return end
+
+    self.inst:ListenForEvent("aqp_threadstart", StopCooking) -- For AttackQueue Plus
 
     local PlayerControllerOnControl = self.OnControl
     self.OnControl = function(self, control, down, ...)
