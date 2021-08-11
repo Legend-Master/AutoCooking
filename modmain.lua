@@ -15,6 +15,7 @@ local laggy_mode            = GetModConfigData("laggy_mode")
 
 local start_key             = GetKeyFromConfig("key")
 local key_2                 = GetKeyFromConfig("key_2")
+local integrated_key        = GetKeyFromConfig("integrated_key")
 local last_recipe_key       = GetKeyFromConfig("last_recipe_key")
 local laggy_mode_key        = GetKeyFromConfig("laggy_mode_key")
 
@@ -697,7 +698,7 @@ end
 
 local function GetStartingItems(use_last_recipe)
     if use_last_recipe then
-        return last_recipe, use_last_recipe
+        return last_recipe, last_recipe_type
     end
     -- Cookware -> Backpack -> Inventory
     local items, cooking_type = CheckCookwareItems()
@@ -723,7 +724,10 @@ local function Start(use_last_recipe)
         HarvestOnly(true)
         return
     end
-    Say(GetString("start"))
+
+    if not use_last_recipe then
+        Say(GetString("start"))
+    end
 
     ismasterchef = ThePlayer:HasTag("masterchef")
     if cooking_type == SEASONING then
@@ -860,7 +864,33 @@ TheInput:AddKeyUpHandler(last_recipe_key, function()
     end
 
     Say(GetString("last_recipe"))
-    Start(last_recipe_type)
+    Start(true)
+end)
+
+TheInput:AddKeyUpHandler(integrated_key, function()
+
+    if not InGame() then return end
+
+    if ac_thread then StopCooking() return end
+
+    local items, cooking_type = CheckCookwareItems()
+    if items then
+        last_recipe = items
+        last_recipe_type = cooking_type
+        Say(GetString("start"))
+        Start(true)
+
+    elseif not last_recipe then
+        Say(GetString("no_previous_recipe"))
+
+    elseif not HaveEnoughItems(last_recipe) then
+        HarvestOnly(true)
+
+    else
+        Say(GetString("last_recipe"))
+        Start(true)
+
+    end
 end)
 
 if laggy_mode == "in_game" then

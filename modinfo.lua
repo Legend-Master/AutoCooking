@@ -57,6 +57,13 @@ configuration_options =
         default = "KEY_HOME"
     },
     {
+        name = "integrated_key",
+        hover = "Key to start cooking items from opened cookware or lastest cooking recipe\n开始做打开容器内物品或者上一次配方的按键",
+        label = "Integrated Key",
+        options = keylist,
+        default = false
+    },
+    {
         name = "last_recipe_mode",
         hover = "Last recipe mode\n烹饪上次配方的模式",
         label = "Lastest Recipe Mode",
