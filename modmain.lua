@@ -30,6 +30,7 @@ local SEASONING = "seasoning"
 local COOKING = "cooking"
 
 local STEWER_RANGE = 25
+local AUTO_CLOSE_RANGE = 4
 local SLEEP_TIME = FRAMES * 3
 
 local COOKWARE_MUSTTAGS = {"stewer"}
@@ -67,9 +68,11 @@ local function InGame()
     return ThePlayer and ThePlayer.HUD and not ThePlayer.HUD:HasInputFocus()
 end
 
-local function Say(string)
-    if not ThePlayer then return end
-    ThePlayer.components.talker:Say(string)
+local function Say(str)
+    local talker = ThePlayer and ThePlayer.components.talker
+    if talker then
+        talker:Say(str)
+    end
 end
 
 local CHINESE_STRING = {
@@ -142,8 +145,28 @@ local function IsValidEntity(ent)
     return ent and ent.Transform and ent:IsValid() and not ent:HasTag("INLIMBO")
 end
 
+-- Sigh, why inventory_replica.GetOpenContainers not checking isopen...
 local function GetOpenContainers()
-    return ThePlayer.replica.inventory:GetOpenContainers()
+    if ThePlayer.components.inventory ~= nil then
+        return ThePlayer.components.inventory.opencontainers
+
+    elseif ThePlayer.HUD ~= nil then
+        local containers = {}
+        for k, v in pairs(ThePlayer.HUD.controls.containers) do
+            if v ~= nil and v.inst.entity:IsVisible() and v.isopen and k:IsValid() then -- Check isopen
+                containers[k] = true
+            end
+        end
+        local overflow = ThePlayer.replica.inventory:GetOverflowContainer()
+        if overflow and overflow.inst then
+            containers[overflow.inst] = true
+        end
+        return containers
+
+    else
+        return {}
+
+    end
 end
 
 local function CanHarvest(target)
@@ -304,7 +327,7 @@ local function FindCookware(cookware_type, actioncheck, cookpots, container, can
     local function find(_prefab)
         return FindEntity(ThePlayer, STEWER_RANGE, function(inst)
 
-            if container and not container:IsNear(inst, 4) then -- Check this to prevents us from closing the opened container when try to go to another one
+            if container and not container:IsNear(inst, AUTO_CLOSE_RANGE) then -- Check this to prevents us from closing the opened container when try to go to another one
                 return
 
             elseif cookpots and not table.contains(cookpots, inst) then -- Only use those cookpots
@@ -417,7 +440,7 @@ end
 local function TakeOutItemsInCookware(cookware)
     -- If something's in that cookware, take it out
     local container = cookware.replica.container
-    while not container:IsEmpty() do
+    while not (cookware:IsValid() and container:IsEmpty()) do
         for i = 1, container:GetNumSlots() do
             if container:GetItemInSlot(i) then
                 if ThePlayer.replica.inventory:IsFull() then
@@ -500,15 +523,21 @@ local function DoHarvest(target, single)
     end
 end
 
+local function DoRummage(target)
+    local act = BufferedAction(ThePlayer, target, ACTIONS.RUMMAGE)
+    while not (target.replica.container and target.replica.container:IsOpenedBy(ThePlayer)) do
+        SendActionAndWait(act, target)
+    end
+    table.removearrayvalue(harvestinglist, target)
+end
+
 local function TryWalkTo(target)
     if target and not target:IsNear(ThePlayer, 2) then
         local pos = target:GetPosition()
         local act = BufferedAction(ThePlayer, target, ACTIONS.WALKTO, nil, pos)
         if not ThePlayer:HasTag("moving") and ThePlayer:HasTag("idle") then
             SendLeftClickAction(act, nil, pos)
-            --From Advanced Controls--
-            ThePlayer:DoTaskInTime(0, function() SendLeftClickAction(act, target, pos) end)
-            --From Advanced Controls--
+            ThePlayer:DoTaskInTime(0, function() SendLeftClickAction(act, target, pos) end) -- From Advanced Controls
         end
     end
 end
@@ -542,7 +571,7 @@ local function HarvestOnly(endless)
         end
         StopCooking()
     end
-    
+
     if endless then
         Say(GetString("harvest_only_endless"))
     else
@@ -554,43 +583,6 @@ local function HarvestOnly(endless)
     else
         ac_thread = ThePlayer:StartThread(harvest_thread)
     end
-end
-
-local function DoFillUp(cookware, items, cookpots)
-    local harvesting_cookware = nil -- For keep targeting...
-    local harvest_cookware = nil
-    repeat
-        for i, v in ipairs(items) do
-            if harvesting_cookware
-                and harvesting_cookware:IsNear(cookware, 4)
-                and CanHarvest(harvesting_cookware) then
-
-                harvest_cookware = harvesting_cookware
-            else
-                harvest_cookware = FindCookware(cookpots and "cookpot" or "portablespicer", true, cookpots, cookware, {cookware})
-            end
-            if harvest_cookware then
-                DoHarvest(harvest_cookware, true)
-                harvesting_cookware = harvest_cookware
-            end
-
-            local container, slot = GetItemSlot(v)
-            if container then
-                if cookware.prefab == "portablespicer" then
-                    container:MoveItemFromAllOfSlot(slot, cookware)
-                    Sleep(SLEEP_TIME)
-                else
-                    while not cookware.replica.container:GetItemInSlot(i) do
-                        container:MoveItemFromAllOfSlot(slot, cookware)
-                        Sleep(SLEEP_TIME)
-                    end
-                end
-            else
-                Sleep(SLEEP_TIME)
-            end
-        end
-    until HaveEnoughItems(items, {cookware.replica.container})
-    -- cookware.replica.container:IsFull()
 end
 
 local function DoButtonFn(container)
@@ -610,11 +602,58 @@ local function DoButtonFn(container)
     end
 end
 
+local harvesting_cookware
+local function ShouldKeepHarvertTarget()
+    return harvesting_cookware
+        and harvesting_cookware:IsValid()
+        and CanHarvest(harvesting_cookware)
+end
+
+local function DoFillUpAndCook(cookware, items, cookpots)
+    local container_replica = cookware.replica.container
+    repeat
+        for i, v in ipairs(items) do
+            local harvest_cookware
+            if ShouldKeepHarvertTarget() and harvesting_cookware:IsNear(cookware, AUTO_CLOSE_RANGE) then
+                harvest_cookware = harvesting_cookware
+            else
+                harvest_cookware = FindCookware(cookpots and "cookpot" or "portablespicer", true, cookpots, cookware, {cookware})
+            end
+            if harvest_cookware then
+                harvesting_cookware = harvest_cookware
+                DoHarvest(harvest_cookware, true)
+            end
+
+            local container, slot = GetItemSlot(v)
+            if container then
+                if cookware.prefab == "portablespicer" then
+                    container:MoveItemFromAllOfSlot(slot, cookware)
+                    Sleep(SLEEP_TIME)
+                else
+                    while not (cookware:IsValid() and container_replica:GetItemInSlot(i)) do
+                        container:MoveItemFromAllOfSlot(slot, cookware)
+                        Sleep(SLEEP_TIME)
+                    end
+                end
+            else
+                Sleep(SLEEP_TIME)
+            end
+        end
+    until HaveEnoughItems(items, {container_replica})
+    -- cookware.replica.container:IsFull()
+    DoButtonFn(cookware)
+
+    if ShouldKeepHarvertTarget() then
+        DoHarvest(harvesting_cookware)
+    end
+    harvesting_cookware = nil
+end
+
 local function AutoCooking(items, cookpots)
 
     last_recipe = items
     last_recipe_type = cookpots and COOKING or SEASONING
-    
+
     local cookware_type = cookpots and "cookpot" or "portablespicer"
 
     ac_thread = ThePlayer:StartThread(function()
@@ -623,10 +662,7 @@ local function AutoCooking(items, cookpots)
             local cookware
             for container in pairs(GetOpenContainers()) do
                 local container_replica = container.replica.container
-                if container_replica
-                    and container_replica.type == "cooker"
-                    and container_replica:IsOpenedBy(ThePlayer) then -- Sigh, so why GetOpenContainers not checking isopen...
-
+                if container_replica and container_replica.type == "cooker" then
                     if HaveEnoughItems(items, {container_replica}) then
                         DoButtonFn(container)
                     else
@@ -662,23 +698,14 @@ local function AutoCooking(items, cookpots)
 
             if CanRummage(cookware) then
                 if not HaveEnoughItems(items) then break end
-
-                local act = BufferedAction(ThePlayer, cookware, ACTIONS.RUMMAGE)
-                while not cookware.replica.container:IsOpenedBy(ThePlayer) do
-                    SendActionAndWait(act, cookware)
-                end
-
+                DoRummage(cookware)
                 if not HaveEnoughItems(items) then break end
-
-                table.removearrayvalue(harvestinglist, cookware)
 
                 if not TakeOutItemsInCookware(cookware) then
                     StopCooking()
                     return
                 end
-                DoFillUp(cookware, items, cookpots)
-
-                DoButtonFn(cookware)
+                DoFillUpAndCook(cookware, items, cookpots)
 
             elseif CanHarvest(cookware) then
                 DoHarvest(cookware)
@@ -847,6 +874,7 @@ ENV.AddComponentPostInit("playercontroller", function(self)
 end)
 
 TheInput:AddKeyUpHandler(start_key, Start)
+
 TheInput:AddKeyUpHandler(last_recipe_key, function()
 
     if not InGame() then return end
