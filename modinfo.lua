@@ -1,7 +1,7 @@
 name = "Auto Cooking"
 description = ""
 author = "Tony"
-version = "2.0.0"
+version = "2.0.1"
 icon_atlas = "modicon.xml"
 icon = "modicon.tex"
 dst_compatible = true
@@ -62,17 +62,6 @@ configuration_options =
         label = "Integrated Key",
         options = keylist,
         default = false
-    },
-    {
-        name = "last_recipe_mode",
-        hover = "Last recipe mode\n烹饪上次配方的模式",
-        label = "Lastest Recipe Mode",
-        options =
-        {
-            {description = "Auto Cooking", data = "auto", hover = "Last auto cooking recipe only"},
-            {description = "Last Cooking", data = "last", hover = "Last cooking recipe"}
-        },
-        default = "auto"
     },
     {
         name = "cookpots_num_divisor",

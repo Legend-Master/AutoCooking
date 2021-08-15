@@ -9,7 +9,6 @@ local function GetKeyFromConfig(config)
 end
 
 local language              = GetModConfigData("language")
-local last_recipe_mode      = GetModConfigData("last_recipe_mode")
 local cookpots_num_divisor  = GetModConfigData("cookpots_num_divisor")
 local laggy_mode            = GetModConfigData("laggy_mode")
 
@@ -815,23 +814,21 @@ local function Start(use_last_recipe)
 
 end
 
-if last_recipe_mode == "last" then
-    local containers = require("containers")
-    local params = containers.params
-    for _, v in ipairs(supported_cookwares) do
-        local OldWidgetFn = params[v] and params[v].widget and params[v].widget.buttoninfo and params[v].widget.buttoninfo.fn
-        if OldWidgetFn then
-            params[v].widget.buttoninfo.fn = function(inst, ...)
-                local items = inst.replica.container and inst.replica.container:GetItems()
-                if items and type(items) == "table" then
-                    last_recipe = {}
-                    last_recipe_type = inst.prefab == "portablespicer" and SEASONING or COOKING
-                    for slot, item in pairs(items) do
-                        table.insert(last_recipe, item)
-                    end
+local containers = require("containers")
+local params = containers.params
+for _, v in ipairs(supported_cookwares) do
+    local OldWidgetFn = params[v] and params[v].widget and params[v].widget.buttoninfo and params[v].widget.buttoninfo.fn
+    if OldWidgetFn then
+        params[v].widget.buttoninfo.fn = function(inst, ...)
+            local items = inst.replica.container and inst.replica.container:GetItems()
+            if items and type(items) == "table" then
+                last_recipe = {}
+                last_recipe_type = inst.prefab == "portablespicer" and SEASONING or COOKING
+                for slot, item in pairs(items) do
+                    table.insert(last_recipe, item)
                 end
-                return OldWidgetFn(inst, ...)
             end
+            return OldWidgetFn(inst, ...)
         end
     end
 end
