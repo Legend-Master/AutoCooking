@@ -74,31 +74,11 @@ local function Say(str)
     end
 end
 
-local CHINESE_STRING = {
-    ["no_backpack"] = "未装备背包",
-    ["no_previous_recipe"] = "未找到上次烹饪配方",
-    ["unable_cook_last_recipe"] = "无法烹饪上次配方",
-    ["start"] = "自动做饭:开启",
-    ["stop"] = "自动做饭:关闭",
-    ["not_valid_items"] = "物品有误",
-    ["no_masterchef"] = "没有大厨标签",
-    ["no_portablespicer"] = "未找到调料站",
-    ["no_cookpot"] = "未找到烹饪锅",
-    ["cant_move_out_items"] = "无法从烹饪锅中移出物品",
-    ["harvest_only"] = "材料已用完，进入收获模式",
-    ["harvest_only_endless"] = "无尽收获模式启动",
-    ["last_recipe"] = "烹饪上个配方",
-    ["laggy_mode_on"] = "自动做饭:高延迟模式开启",
-    ["laggy_mode_off"] = "自动做饭:高延迟模式关闭",
-}
-
-local ENGLISH_STRING = {
-    ["no_backpack"] = "No backpack equipped",
+local AC_STRINGS = {
     ["no_previous_recipe"] = "No previous cooking recipe found",
     ["unable_cook_last_recipe"] = "Unable to cook last recipe",
     ["start"] = "Auto Cooking : On",
     ["stop"] = "Auto Cooking : Off",
-    ["not_valid_items"] = "Wrong items",
     ["no_masterchef"] = "Haven't masterchef tag",
     ["no_portablespicer"] = "Didn't find portablespicer",
     ["no_cookpot"] = "Didn't find cookpot",
@@ -110,21 +90,38 @@ local ENGLISH_STRING = {
     ["laggy_mode_off"] = "Auto Cooking : Laggy Mode Off",
 }
 
+local LOC_STRINGS = {
+    chinese_s = {
+        ["no_previous_recipe"] = "未找到上次烹饪配方",
+        ["unable_cook_last_recipe"] = "无法烹饪上个配方",
+        ["start"] = "自动做饭:开启",
+        ["stop"] = "自动做饭:关闭",
+        ["no_masterchef"] = "没有大厨标签",
+        ["no_portablespicer"] = "未找到调料站",
+        ["no_cookpot"] = "未找到烹饪锅",
+        ["cant_move_out_items"] = "无法从烹饪锅中移出物品",
+        ["harvest_only"] = "材料已用完，进入收获模式",
+        ["harvest_only_endless"] = "无尽收获模式启动",
+        ["last_recipe"] = "烹饪上个配方",
+        ["laggy_mode_on"] = "自动做饭:高延迟模式开启",
+        ["laggy_mode_off"] = "自动做饭:高延迟模式关闭",
+    }
+}
+
 if language == "auto" then
     local langs = {
         zh = "chinese_s",
         chs = "chinese_s",
-        en = "english",
     }
-    language = langs[LanguageTranslator.defaultlang] or "english"
+    language = langs[LanguageTranslator.defaultlang]
+end
+
+if LOC_STRINGS[language] then
+    AC_STRINGS = LOC_STRINGS[language]
 end
 
 local function GetString(stringtype)
-    if language == "chinese_s" then
-        return CHINESE_STRING[stringtype]
-    else
-        return ENGLISH_STRING[stringtype]
-    end
+    return AC_STRINGS[stringtype]
 end
 
 local function FormatItemsAmount(items)
@@ -905,15 +902,12 @@ TheInput:AddKeyUpHandler(integrated_key, function()
         Say(GetString("start"))
         Start(true)
 
-    elseif not last_recipe then
-        Say(GetString("no_previous_recipe"))
-
-    elseif not HaveEnoughItems(last_recipe) then
-        HarvestOnly(true)
-
-    else
+    elseif last_recipe and HaveEnoughItems(last_recipe) then
         Say(GetString("last_recipe"))
         Start(true)
+        
+    else
+        HarvestOnly(true)
 
     end
 end)
