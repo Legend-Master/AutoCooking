@@ -9,6 +9,7 @@ local function GetKeyFromConfig(config)
 end
 
 local language              = GetModConfigData("language")
+local speedy_mode           = GetModConfigData("speedy_mode")
 local cookpots_num_divisor  = GetModConfigData("cookpots_num_divisor")
 local laggy_mode            = GetModConfigData("laggy_mode")
 
@@ -280,17 +281,17 @@ local function CheckInventoryItems()
     for slot, item in pairs(items) do
         if cooking.IsCookingIngredient(item.prefab) then
             if CheckNext(slot, 1) then
-                table.insert(item_list,item)
+                table.insert(item_list, item)
                 return item_list, COOKING
             end
         elseif item:HasTag("spice") then
             if CheckNext(slot, 1, "spice") then
-                table.insert(item_list,item)
+                table.insert(item_list, item)
                 return item_list, SEASONING
             end
         elseif item:HasTag("preparedfood") and not item:HasTag("spicedfood") then
             if CheckNext(slot, 1, "preparedfood") then
-                table.insert(item_list,item)
+                table.insert(item_list, item)
                 return item_list, SEASONING
             end
         end
@@ -417,7 +418,6 @@ local function HaveEnoughItems(items, containers)
 
 end
 
--- Deprecated
 local function GetItemSlot(item)
     local item_valid = item:IsValid() and item.replica.inventoryitem and item.replica.inventoryitem:IsHeldBy(ThePlayer)
     local final_container, final_slot
@@ -437,6 +437,34 @@ local function GetItemSlot(item)
         end
     end
     return final_container, final_slot
+end
+
+-- For Ultra Fast Mode
+local function GetItems(required_items)
+    required_items = shallowcopy(required_items)
+    local final_steps = {}
+    for _, container in orderedPairs(GetDefaultCheckingContainers()) do
+        if type(container) == "table" and container.GetItems then
+            local items = container:GetItems()
+            for slot, item in orderedPairs(items) do
+                if required_items[item.prefab] then
+                    local steps = item.replica.stackable and math.min(item.replica.stackable:StackSize(), required_items[item.prefab]) or 1
+                    for i = 1, steps do
+                        table.insert(final_steps, {container = container.inst, slot = slot})
+                    end
+                    required_items[item.prefab] = required_items[item.prefab] - steps
+                    if required_items[item.prefab] == 0 then
+                        required_items[item.prefab] = nil
+                    end
+                    if IsTableEmpty(required_items) then
+                        items.__genOrderedIndex = nil
+                        return final_steps
+                    end
+                end
+            end
+        end
+    end
+    return IsTableEmpty(required_items) and final_steps or nil
 end
 
 local function TakeOutItemsInCookware(cookware)
@@ -587,12 +615,17 @@ local function HarvestOnly(endless)
     end
 end
 
-local function DoButtonFn(container)
+local function DoButtonFn(container, single)
     local container_replica = container.replica.container
-    repeat
+    if single then
+        container_replica.widget.buttoninfo.fn(container, ThePlayer)
+        return
+    end
+
+    while container:IsValid() and container_replica:IsOpenedBy(ThePlayer) do
         container_replica.widget.buttoninfo.fn(container, ThePlayer)
         Sleep(SLEEP_TIME)
-    until not (container:IsValid() and container_replica:IsOpenedBy(ThePlayer))
+    end
 
     -- Well, doing this is because opener & can open changes can happen at different time on client...
     while container:IsValid() and container_replica:CanBeOpened() do
@@ -611,60 +644,57 @@ local function ShouldKeepHarvertTarget()
         and CanHarvest(harvesting_cookware)
 end
 
-local function GetItems(required_items)
-    required_items = shallowcopy(required_items)
-    local final_steps = {}
-    for _, container in orderedPairs(GetDefaultCheckingContainers()) do
-        if type(container) == "table" and container.GetItems then
-            local items = container:GetItems()
-            for slot, item in orderedPairs(items) do
-                if required_items[item.prefab] then
-                    local steps = item.replica.stackable and math.min(item.replica.stackable:StackSize(), required_items[item.prefab]) or 1
-                    for i = 1, steps do
-                        table.insert(final_steps, {container = container.inst, slot = slot})
-                    end
-                    required_items[item.prefab] = required_items[item.prefab] - steps
-                    if required_items[item.prefab] == 0 then
-                        required_items[item.prefab] = nil
-                    end
-                    if IsTableEmpty(required_items) then
-                        items.__genOrderedIndex = nil
-                        return final_steps
-                    end
-                end
-            end
-        end
+local function TryHarvestWhenFilling(cookware, cookpots)
+    local harvest_cookware
+    if ShouldKeepHarvertTarget() and harvesting_cookware:IsNear(cookware, AUTO_CLOSE_RANGE) then
+        harvest_cookware = harvesting_cookware
+    else
+        harvest_cookware = FindCookware(cookpots and "cookpot" or "portablespicer", true, cookpots, cookware, {cookware})
     end
-    return IsTableEmpty(required_items) and final_steps or nil
+    if harvest_cookware then
+        harvesting_cookware = harvest_cookware
+        DoHarvest(harvest_cookware, true)
+    end
 end
 
 local function DoFillUpAndCook(cookware, items, cookpots)
     local container_replica = cookware.replica.container
-    local formatted_items = FormatItemsAmount(items)
     repeat
-        local harvest_cookware
-        if ShouldKeepHarvertTarget() and harvesting_cookware:IsNear(cookware, AUTO_CLOSE_RANGE) then
-            harvest_cookware = harvesting_cookware
-        else
-            harvest_cookware = FindCookware(cookpots and "cookpot" or "portablespicer", true, cookpots, cookware, {cookware})
-        end
-        if harvest_cookware then
-            harvesting_cookware = harvest_cookware
-            DoHarvest(harvest_cookware, true)
-        end
+        if speedy_mode then
+            TryHarvestWhenFilling(cookware, cookpots)
 
-        local steps = GetItems(formatted_items)
-        if steps then
-            for _, data in ipairs(steps) do
-                if data.container == ThePlayer then
-                    SendRPCToServer(RPC.MoveInvItemFromAllOfSlot, data.slot, cookware)
+            local steps = GetItems(FormatItemsAmount(items))
+            if steps then
+                for _, data in ipairs(steps) do
+                    if data.container == ThePlayer then
+                        SendRPCToServer(RPC.MoveInvItemFromAllOfSlot, data.slot, cookware)
+                    else
+                        SendRPCToServer(RPC.MoveItemFromAllOfSlot, data.slot, data.container, cookware)
+                    end
+                end
+                DoButtonFn(cookware, true)
+            end
+            Sleep(SLEEP_TIME)
+        else
+            for i, v in ipairs(items) do
+                TryHarvestWhenFilling(cookware, cookpots)
+
+                local container, slot = GetItemSlot(v)
+                if container then
+                    if cookware.prefab == "portablespicer" then
+                        container:MoveItemFromAllOfSlot(slot, cookware)
+                        Sleep(SLEEP_TIME)
+                    else
+                        while not (cookware:IsValid() and container_replica:GetItemInSlot(i)) do
+                            container:MoveItemFromAllOfSlot(slot, cookware)
+                            Sleep(SLEEP_TIME)
+                        end
+                    end
                 else
-                    SendRPCToServer(RPC.MoveItemFromAllOfSlot, data.slot, data.container, cookware)
+                    Sleep(SLEEP_TIME)
                 end
             end
-            SendRPCToServer(RPC.DoWidgetButtonAction, ACTIONS.COOK.code, cookware, ACTIONS.COOK.mod_name)
         end
-        Sleep(SLEEP_TIME)
     until HaveEnoughItems(items, {container_replica}) or not container_replica:IsOpenedBy(ThePlayer)
     -- cookware.replica.container:IsFull()
     DoButtonFn(cookware)

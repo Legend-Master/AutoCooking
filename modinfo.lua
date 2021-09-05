@@ -1,7 +1,7 @@
 name = "Auto Cooking"
 description = ""
 author = "Tony"
-version = "2.0.2"
+version = "2.1.0"
 icon_atlas = "modicon.xml"
 icon = "modicon.tex"
 dst_compatible = true
@@ -13,6 +13,7 @@ api_version = 10
 -- Make sure we load after other mods to hook their containers data
 priority = -10000
 
+local boolean = {{description = "Yes", data = true}, {description = "No", data = false}}
 local string = ""
 local keys = {"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","LAlt","RAlt","LCtrl","RCtrl","LShift","RShift","Tab","Capslock","Space","Minus","Equals","Backspace","Insert","Home","Delete","End","Pageup","Pagedown","Print","Scrollock","Pause","Period","Slash","Semicolon","Leftbracket","Rightbracket","Backslash","Up","Down","Left","Right"}
 local keylist = {}
@@ -62,6 +63,13 @@ configuration_options =
         label = "Integrated Key",
         options = keylist,
         default = false
+    },
+    {
+        name = "speedy_mode",
+        hover = "Ultra fast filling speed\n究极快的填充速度",
+        label = "Ultra Fast Mode",
+        options = boolean,
+        default = false,
     },
     {
         name = "cookpots_num_divisor",
