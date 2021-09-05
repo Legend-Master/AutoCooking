@@ -662,9 +662,10 @@ local function DoFillUpAndCook(cookware, items, cookpots)
                     SendRPCToServer(RPC.MoveItemFromAllOfSlot, data.slot, data.container, cookware)
                 end
             end
+            SendRPCToServer(RPC.DoWidgetButtonAction, ACTIONS.COOK.code, cookware, ACTIONS.COOK.mod_name)
         end
         Sleep(SLEEP_TIME)
-    until HaveEnoughItems(items, {container_replica})
+    until HaveEnoughItems(items, {container_replica}) or not container_replica:IsOpenedBy(ThePlayer)
     -- cookware.replica.container:IsFull()
     DoButtonFn(cookware)
 
