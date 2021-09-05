@@ -183,7 +183,7 @@ local function Wait(act)
     if laggy_mode_on then Sleep(0.3) end
 end
 
-local function SendLeftClickAction(act, target, pos)
+local function SendLeftClickAction(act, target)
 
     local playercontroller = ThePlayer.components.playercontroller
     if playercontroller.ismastersim then
@@ -192,7 +192,7 @@ local function SendLeftClickAction(act, target, pos)
         return
     end
 
-    local pos = pos or ThePlayer:GetPosition()
+    local pos = act:GetActionPoint() or ThePlayer:GetPosition()
     local function send()
         SendRPCToServer(RPC.LeftClick, act.action.code, pos.x, pos.z, target, true)
     end
@@ -320,27 +320,32 @@ end
 
 local function FindCookware(cookware_type, actioncheck, cookpots, container, cantcookware)
 
+    local function base_check(inst)
+        return not (container and not container:IsNear(inst, AUTO_CLOSE_RANGE)) -- Check this to prevents us from closing the opened container when try to go to another one
+            and not (actioncheck and not (CanHarvest(inst) or CanRummage(inst)))
+            and not (cantcookware and table.contains(cantcookware, inst))
+    end
+
+    if cookpots then
+        local x, y, z = ThePlayer.Transform:GetWorldPosition()
+        local mindistsq, cookpot
+        for _, v in ipairs(cookpots) do
+            if base_check(v) then
+                local curdistsq = v:GetDistanceSqToPoint(x, y, z)
+                if not mindistsq or curdistsq < mindistsq then
+                    mindistsq = curdistsq
+                    cookpot = v
+                end
+            end
+        end
+        return cookpot
+    end
+
+    local CANTTAGS = ismasterchef and COOKWARE_CANTTAGS or NO_MASTERCHEF_CANTTAGS
     local function find(_prefab)
         return FindEntity(ThePlayer, STEWER_RANGE, function(inst)
-
-            if container and not container:IsNear(inst, AUTO_CLOSE_RANGE) then -- Check this to prevents us from closing the opened container when try to go to another one
-                return
-
-            elseif cookpots and not table.contains(cookpots, inst) then -- Only use those cookpots
-                return
-
-            elseif actioncheck and not (CanHarvest(inst) or CanRummage(inst)) then
-                return
-
-            elseif cantcookware and table.contains(cantcookware, inst) then
-                return
-
-            else
-                return IsCookwareMorph(_prefab, inst.prefab)
-
-            end
-
-        end, COOKWARE_MUSTTAGS, ismasterchef and COOKWARE_CANTTAGS or NO_MASTERCHEF_CANTTAGS)
+            return IsCookwareMorph(_prefab, inst.prefab) and base_check(inst)
+        end, COOKWARE_MUSTTAGS, CANTTAGS)
     end
 
     if cookware_type == "cookpot" then
@@ -532,8 +537,8 @@ local function TryWalkTo(target)
         local pos = target:GetPosition()
         local act = BufferedAction(ThePlayer, target, ACTIONS.WALKTO, nil, pos)
         if not ThePlayer:HasTag("moving") and ThePlayer:HasTag("idle") then
-            SendLeftClickAction(act, nil, pos)
-            ThePlayer:DoTaskInTime(0, function() SendLeftClickAction(act, target, pos) end) -- From Advanced Controls
+            SendLeftClickAction(act)
+            ThePlayer:DoTaskInTime(0, function() SendLeftClickAction(act, target) end) -- From Advanced Controls
         end
     end
 end
@@ -776,16 +781,14 @@ local function Start(use_last_recipe)
             for i, v in ipairs(items) do
                 items_prefab[i] = items[i].prefab
             end
-            local food, cookingtime = cooking.CalculateRecipe(firstcookpot.prefab, items_prefab)
+            local _, cookingtime = cooking.CalculateRecipe(firstcookpot.prefab, items_prefab)
+            cookingtime = cookingtime * TUNING.BASE_COOK_TIME
 
             if firstcookpot.prefab == "portablecookpot" then
-                cookingtime = TUNING.BASE_COOK_TIME * cookingtime * TUNING.PORTABLE_COOK_POT_TIME_MULTIPLIER
+                cookingtime = cookingtime * TUNING.PORTABLE_COOK_POT_TIME_MULTIPLIER
 
-            elseif firstcookpot.prefab == "medal_cookpot" and TUNING_MEDAL and TUNING_MEDAL.PORTABLE_COOK_POT_TIME_MULTIPLIER then  -- For Functional Medal Mod
-                cookingtime = TUNING.BASE_COOK_TIME * cookingtime * TUNING_MEDAL.PORTABLE_COOK_POT_TIME_MULTIPLIER
-
-            else
-                cookingtime = TUNING.BASE_COOK_TIME * cookingtime
+            elseif firstcookpot.prefab == "medal_cookpot" and rawget(_G, TUNING_MEDAL) and TUNING_MEDAL.PORTABLE_COOK_POT_TIME_MULTIPLIER then  -- For Functional Medal Mod
+                cookingtime = cookingtime * TUNING_MEDAL.PORTABLE_COOK_POT_TIME_MULTIPLIER
 
             end
 
@@ -905,7 +908,7 @@ TheInput:AddKeyUpHandler(integrated_key, function()
     elseif last_recipe and HaveEnoughItems(last_recipe) then
         Say(GetString("last_recipe"))
         Start(true)
-        
+
     else
         HarvestOnly(true)
 
