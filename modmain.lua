@@ -417,6 +417,7 @@ local function HaveEnoughItems(items, containers)
 
 end
 
+-- Deprecated
 local function GetItemSlot(item)
     local item_valid = item:IsValid() and item.replica.inventoryitem and item.replica.inventoryitem:IsHeldBy(ThePlayer)
     local final_container, final_slot
@@ -447,13 +448,13 @@ local function TakeOutItemsInCookware(cookware)
                 if ThePlayer.replica.inventory:IsFull() then
                     local backpack = ThePlayer.replica.inventory:GetOverflowContainer()
                     if backpack and not backpack:IsFull() then
-                        SendRPCToServer(RPC.MoveItemFromAllOfSlot, i, container.inst, backpack.inst)
+                        SendRPCToServer(RPC.MoveItemFromAllOfSlot, i, cookware, backpack.inst)
                     else
                         Say(GetString("cant_move_out_items"))
                         return false
                     end
                 else
-                    SendRPCToServer(RPC.MoveItemFromAllOfSlot, i, container.inst)
+                    SendRPCToServer(RPC.MoveItemFromAllOfSlot, i, cookware)
                 end
             end
         end
@@ -610,36 +611,59 @@ local function ShouldKeepHarvertTarget()
         and CanHarvest(harvesting_cookware)
 end
 
-local function DoFillUpAndCook(cookware, items, cookpots)
-    local container_replica = cookware.replica.container
-    repeat
-        for i, v in ipairs(items) do
-            local harvest_cookware
-            if ShouldKeepHarvertTarget() and harvesting_cookware:IsNear(cookware, AUTO_CLOSE_RANGE) then
-                harvest_cookware = harvesting_cookware
-            else
-                harvest_cookware = FindCookware(cookpots and "cookpot" or "portablespicer", true, cookpots, cookware, {cookware})
-            end
-            if harvest_cookware then
-                harvesting_cookware = harvest_cookware
-                DoHarvest(harvest_cookware, true)
-            end
-
-            local container, slot = GetItemSlot(v)
-            if container then
-                if cookware.prefab == "portablespicer" then
-                    container:MoveItemFromAllOfSlot(slot, cookware)
-                    Sleep(SLEEP_TIME)
-                else
-                    while not (cookware:IsValid() and container_replica:GetItemInSlot(i)) do
-                        container:MoveItemFromAllOfSlot(slot, cookware)
-                        Sleep(SLEEP_TIME)
+local function GetItems(required_items)
+    required_items = shallowcopy(required_items)
+    local final_steps = {}
+    for _, container in orderedPairs(GetDefaultCheckingContainers()) do
+        if type(container) == "table" and container.GetItems then
+            local items = container:GetItems()
+            for slot, item in orderedPairs(items) do
+                if required_items[item.prefab] then
+                    local steps = item.replica.stackable and math.min(item.replica.stackable:StackSize(), required_items[item.prefab]) or 1
+                    for i = 1, steps do
+                        table.insert(final_steps, {container = container.inst, slot = slot})
+                    end
+                    required_items[item.prefab] = required_items[item.prefab] - steps
+                    if required_items[item.prefab] == 0 then
+                        required_items[item.prefab] = nil
+                    end
+                    if IsTableEmpty(required_items) then
+                        items.__genOrderedIndex = nil
+                        return final_steps
                     end
                 end
-            else
-                Sleep(SLEEP_TIME)
             end
         end
+    end
+    return IsTableEmpty(required_items) and final_steps or nil
+end
+
+local function DoFillUpAndCook(cookware, items, cookpots)
+    local container_replica = cookware.replica.container
+    local formatted_items = FormatItemsAmount(items)
+    repeat
+        local harvest_cookware
+        if ShouldKeepHarvertTarget() and harvesting_cookware:IsNear(cookware, AUTO_CLOSE_RANGE) then
+            harvest_cookware = harvesting_cookware
+        else
+            harvest_cookware = FindCookware(cookpots and "cookpot" or "portablespicer", true, cookpots, cookware, {cookware})
+        end
+        if harvest_cookware then
+            harvesting_cookware = harvest_cookware
+            DoHarvest(harvest_cookware, true)
+        end
+
+        local steps = GetItems(formatted_items)
+        if steps then
+            for _, data in ipairs(steps) do
+                if data.container == ThePlayer then
+                    SendRPCToServer(RPC.MoveInvItemFromAllOfSlot, data.slot, cookware)
+                else
+                    SendRPCToServer(RPC.MoveItemFromAllOfSlot, data.slot, data.container, cookware)
+                end
+            end
+        end
+        Sleep(SLEEP_TIME)
     until HaveEnoughItems(items, {container_replica})
     -- cookware.replica.container:IsFull()
     DoButtonFn(cookware)
