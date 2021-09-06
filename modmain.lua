@@ -13,11 +13,7 @@ local speedy_mode           = GetModConfigData("speedy_mode")
 local cookpots_num_divisor  = GetModConfigData("cookpots_num_divisor")
 local laggy_mode            = GetModConfigData("laggy_mode")
 
-local start_key             = GetKeyFromConfig("key")
 local key_2                 = GetKeyFromConfig("key_2")
-local integrated_key        = GetKeyFromConfig("integrated_key")
-local last_recipe_key       = GetKeyFromConfig("last_recipe_key")
-local laggy_mode_key        = GetKeyFromConfig("laggy_mode_key")
 
 local laggy_mode_on = laggy_mode == "on"
 
@@ -66,6 +62,17 @@ local ismasterchef = false
 -- From ActionQueue Reborn
 local function InGame()
     return ThePlayer and ThePlayer.HUD and not ThePlayer.HUD:HasInputFocus()
+end
+
+local function AddKeyUpHandlerForConfig(config, fn)
+    local key = GetKeyFromConfig(config)
+    if key ~= -1 then
+        return TheInput:AddKeyUpHandler(key, function()
+            if InGame() then
+                fn()
+            end
+        end)
+    end
 end
 
 local function Say(str)
@@ -799,7 +806,6 @@ end
 
 local function Start(use_last_recipe)
 
-    if not InGame() then return end
     if ac_thread then StopCooking() return end
 
     local items, cooking_type = GetStartingItems(use_last_recipe)
@@ -832,6 +838,19 @@ local function Start(use_last_recipe)
 
         if firstcookpot then
 
+            local x, _, z = firstcookpot.Transform:GetWorldPosition()
+            local ents = TheSim:FindEntities(x, 0, z, STEWER_RANGE, COOKWARE_MUSTTAGS, COOKWARE_CANTTAGS)
+
+            if TheInput:IsKeyDown(KEY_SHIFT) then
+                for _, ent in ipairs(ents) do
+                    if IsCookwareMorph(firstcookpot.prefab, ent.prefab) then
+                        table.insert(cookpots, ent)
+                    end
+                end
+                AutoCooking(items, cookpots)
+                return
+            end
+
             local items_prefab = {}
             for i, v in ipairs(items) do
                 items_prefab[i] = items[i].prefab
@@ -847,16 +866,15 @@ local function Start(use_last_recipe)
 
             end
 
-            local cookpot_num = math.ceil(cookingtime / cookpots_num_divisor) + 1
-            for i = 1, cookpot_num do
-                local cookpot = FindEntity(firstcookpot, STEWER_RANGE, function(inst)
-                    return not table.contains(cookpots, inst)
-                        and IsCookwareMorph(firstcookpot.prefab, inst.prefab)
-                end, COOKWARE_MUSTTAGS, COOKWARE_CANTTAGS)
-                if cookpot then
-                    table.insert(cookpots, cookpot)
-                else
-                    break
+            local needed_num = math.ceil(cookingtime / cookpots_num_divisor) + 1
+            local cur_num = 0
+            for _, ent in ipairs(ents) do
+                if IsCookwareMorph(firstcookpot.prefab, ent.prefab) then
+                    table.insert(cookpots, ent)
+                    cur_num = cur_num + 1
+                    if cur_num == needed_num then
+                        break
+                    end
                 end
             end
             AutoCooking(items, cookpots)
@@ -908,16 +926,13 @@ ENV.AddComponentPostInit("playercontroller", function(self)
         local mouse_control = mouse_controls[control]
         local interrupt_control = interrupt_controls[control]
         if down and InGame() then
-            if interrupt_control or mouse_control and not (key_2 and TheInput:IsKeyDown(key_2)) and not TheInput:GetHUDEntityUnderMouse() then
-                if ac_thread then
+            if ac_thread then
+                if interrupt_control or mouse_control and not TheInput:GetHUDEntityUnderMouse() then
                     StopCooking()
                 end
-            end
-
-            if mouse_control and key_2 and TheInput:IsKeyDown(key_2) then
+            elseif key_2 ~= -1 and control == CONTROL_PRIMARY and TheInput:IsKeyDown(key_2) then
                 local ent = TheInput:GetWorldEntityUnderMouse()
-                if not ac_thread and not TheInput:GetHUDEntityUnderMouse()
-                        and ent and table.contains(supported_cookwares, ent.prefab) and IsValidEntity(ent) then
+                if ent and table.contains(supported_cookwares, ent.prefab) and IsValidEntity(ent) then
                     Start()
                     return
                 end
@@ -927,11 +942,9 @@ ENV.AddComponentPostInit("playercontroller", function(self)
     end
 end)
 
-TheInput:AddKeyUpHandler(start_key, Start)
+AddKeyUpHandlerForConfig("key", Start)
 
-TheInput:AddKeyUpHandler(last_recipe_key, function()
-
-    if not InGame() then return end
+AddKeyUpHandlerForConfig("last_recipe_key", function()
 
     if not last_recipe then
         Say(GetString("no_previous_recipe"))
@@ -949,9 +962,7 @@ TheInput:AddKeyUpHandler(last_recipe_key, function()
     Start(true)
 end)
 
-TheInput:AddKeyUpHandler(integrated_key, function()
-
-    if not InGame() then return end
+AddKeyUpHandlerForConfig("integrated_key", function()
 
     if ac_thread then StopCooking() return end
 
@@ -973,8 +984,7 @@ TheInput:AddKeyUpHandler(integrated_key, function()
 end)
 
 if laggy_mode == "in_game" then
-    TheInput:AddKeyUpHandler(laggy_mode_key, function()
-        if not InGame() then return end
+    AddKeyUpHandlerForConfig("laggy_mode_key", function()
         laggy_mode_on = not laggy_mode_on
         Say(GetString(laggy_mode_on and "laggy_mode_on" or "laggy_mode_off"))
     end)
