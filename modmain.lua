@@ -457,7 +457,7 @@ local function GetItems(required_items)
                         required_items[item.prefab] = nil
                     end
                     if IsTableEmpty(required_items) then
-                        items.__genOrderedIndex = nil
+                        items.__orderedIndex = nil
                         return final_steps
                     end
                 end
@@ -875,12 +875,14 @@ for _, v in ipairs(supported_cookwares) do
     local OldWidgetFn = params[v] and params[v].widget and params[v].widget.buttoninfo and params[v].widget.buttoninfo.fn
     if OldWidgetFn then
         params[v].widget.buttoninfo.fn = function(inst, ...)
-            local items = inst.replica.container and inst.replica.container:GetItems()
-            if items and type(items) == "table" then
-                last_recipe = {}
-                last_recipe_type = inst.prefab == "portablespicer" and SEASONING or COOKING
-                for slot, item in pairs(items) do
-                    table.insert(last_recipe, item)
+            if not ac_thread then
+                local items = inst.replica.container and inst.replica.container:GetItems()
+                if items and type(items) == "table" then
+                    last_recipe = {}
+                    last_recipe_type = inst.prefab == "portablespicer" and SEASONING or COOKING
+                    for slot, item in pairs(items) do
+                        table.insert(last_recipe, item)
+                    end
                 end
             end
             return OldWidgetFn(inst, ...)
