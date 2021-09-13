@@ -691,18 +691,25 @@ local function DoFillUpAndCook(cookware, items, cookpots)
                     if cookware.prefab == "portablespicer" then
                         container:MoveItemFromAllOfSlot(slot, cookware)
                         Sleep(SLEEP_TIME)
-                    else
-                        while not (cookware:IsValid() and container_replica:GetItemInSlot(i)) do
+
+                    elseif not container_replica:GetItemInSlot(i) then
+                        repeat
                             container:MoveItemFromAllOfSlot(slot, cookware)
                             Sleep(SLEEP_TIME)
-                        end
+                        until cookware:IsValid() and container_replica:GetItemInSlot(i)
+
+                    else
+                        Sleep(SLEEP_TIME)
+
                     end
                 else
                     Sleep(SLEEP_TIME)
                 end
             end
         end
-    until HaveEnoughItems(items, {container_replica}) or not container_replica:IsOpenedBy(ThePlayer)
+    until not cookware:IsValid()
+        or not container_replica:IsOpenedBy(ThePlayer)
+        or HaveEnoughItems(items, {container_replica})
     -- cookware.replica.container:IsFull()
     DoButtonFn(cookware)
 
