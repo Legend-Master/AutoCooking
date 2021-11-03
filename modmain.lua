@@ -43,6 +43,7 @@ local supported_cookwares = {
 }
 local cookware_morph = {
     cookpot = {
+        "portablecookpot",
         "deluxpot",
         "archive_cookpot"
     },
@@ -50,14 +51,17 @@ local cookware_morph = {
         "medal_cookpot"
     }
 }
+for _, v in ipairs(cookware_morph.portablecookpot) do
+    table.insert(cookware_morph.cookpot, v)
+end
 
 local ac_thread
 local harvestinglist = {}
 
 local last_recipe
 local last_recipe_type
-
-local ismasterchef = false
+local ismasterchef
+local should_harvest
 
 -- From ActionQueue Reborn
 local function InGame()
@@ -84,14 +88,14 @@ end
 
 local AC_STRINGS = {
     ["no_previous_recipe"] = "No previous cooking recipe found",
-    ["unable_cook_last_recipe"] = "Unable to cook last recipe",
+    -- ["unable_cook_last_recipe"] = "Unable to cook last recipe",
     ["start"] = "Auto Cooking : On",
     ["stop"] = "Auto Cooking : Off",
-    ["no_masterchef"] = "Haven't masterchef tag",
+    ["no_masterchef"] = "Don't have masterchef tag",
     ["no_portablespicer"] = "Didn't find portablespicer",
     ["no_cookpot"] = "Didn't find cookpot",
     ["cant_move_out_items"] = "Can't move out item from cookpot",
-    ["harvest_only"] = "Material run out, Harvest Mode On",
+    ["harvest_only"] = "Materials run out, Harvest Mode On",
     ["harvest_only_endless"] = "Endless Harvest Mode On",
     ["last_recipe"] = "Cooking last recipe",
     ["laggy_mode_on"] = "Auto Cooking : Laggy Mode On",
@@ -101,7 +105,7 @@ local AC_STRINGS = {
 local LOC_STRINGS = {
     chinese_s = {
         ["no_previous_recipe"] = "未找到上次烹饪配方",
-        ["unable_cook_last_recipe"] = "无法烹饪上个配方",
+        -- ["unable_cook_last_recipe"] = "无法烹饪上个配方",
         ["start"] = "自动做饭:开启",
         ["stop"] = "自动做饭:关闭",
         ["no_masterchef"] = "没有大厨标签",
@@ -149,6 +153,28 @@ local function IsValidEntity(ent)
     return ent and ent.Transform and ent:IsValid() and not ent:HasTag("INLIMBO")
 end
 
+local function GetClosestTarget(ents, test_fn)
+    local x, y, z = ThePlayer.Transform:GetWorldPosition()
+
+    local mindistsq, target
+    for _, ent in ipairs(ents) do
+        if test_fn == nil or test_fn(ent) then
+            local curdistsq = ent:GetDistanceSqToPoint(x, y, z)
+            if not mindistsq or curdistsq < mindistsq then
+                mindistsq = curdistsq
+                target = ent
+            end
+        end
+    end
+
+    return target
+end
+
+local function IsCookwareMorph(base, prefab)
+    return base == prefab
+        or table.contains(cookware_morph[base], prefab)
+end
+
 -- Sigh, why inventory_replica.GetOpenContainers not checking isopen...
 local function GetOpenContainers()
     if ThePlayer.components.inventory ~= nil then
@@ -174,7 +200,7 @@ local function GetOpenContainers()
 end
 
 local function CanHarvest(target)
-    return target:HasTag("donecooking")
+    return should_harvest and target:HasTag("donecooking")
 end
 
 local function CanRummage(target)
@@ -316,52 +342,34 @@ local function CheckCookwareItems()
             for slot, item in pairs(container.replica.container:GetItems()) do
                 table.insert(item_list, item)
             end
-            return item_list, container.prefab == "portablespicer" and SEASONING or COOKING, container
+            return item_list, IsCookwareMorph("portablespicer", container.prefab) and SEASONING or COOKING, container
         end
     end
 end
 
-local function IsCookwareMorph(base, prefab)
-    return base == prefab
-        or table.contains(cookware_morph[base], prefab)
+local function find_cookware(prefab, canttags)
+    return FindEntity(ThePlayer, STEWER_RANGE, function(inst)
+        return IsCookwareMorph(prefab, inst.prefab)
+    end, COOKWARE_MUSTTAGS, canttags)
 end
 
-local function FindCookware(cookware_type, actioncheck, cookpots, container, cantcookware)
-
-    local function base_check(inst)
-        return not (container and not container:IsNear(inst, AUTO_CLOSE_RANGE)) -- Check this to prevents us from closing the opened container when try to go to another one
-            and not (actioncheck and not (CanHarvest(inst) or CanRummage(inst)))
-            and not (cantcookware and table.contains(cantcookware, inst))
+local function GetStartCookware(cookware_type)
+    local canttags = ismasterchef and COOKWARE_CANTTAGS or NO_MASTERCHEF_CANTTAGS
+    if cookware_type == COOKING then
+        return find_cookware("portablecookpot", canttags) or find_cookware("cookpot", canttags)
+    elseif cookware_type == SEASONING then
+        return find_cookware("portablespicer", canttags)
     end
+end
 
-    if cookpots then
-        local x, y, z = ThePlayer.Transform:GetWorldPosition()
-        local mindistsq, cookpot
-        for _, v in ipairs(cookpots) do
-            if base_check(v) then
-                local curdistsq = v:GetDistanceSqToPoint(x, y, z)
-                if not mindistsq or curdistsq < mindistsq then
-                    mindistsq = curdistsq
-                    cookpot = v
-                end
-            end
-        end
-        return cookpot
-    end
-
-    local CANTTAGS = ismasterchef and COOKWARE_CANTTAGS or NO_MASTERCHEF_CANTTAGS
-    local function find(_prefab)
-        return FindEntity(ThePlayer, STEWER_RANGE, function(inst)
-            return IsCookwareMorph(_prefab, inst.prefab) and base_check(inst)
-        end, COOKWARE_MUSTTAGS, CANTTAGS)
-    end
-
-    if cookware_type == "cookpot" then
-        return find("portablecookpot") or find("cookpot")
-    elseif cookware_type == "portablespicer" then
-        return find("portablespicer")
-    end
-
+local function GetClosestValidCookware(cookwares, actioncheck, container, cant_cookwares)
+    return GetClosestTarget(cookwares, function(inst)
+        return not (
+            container and not container:IsNear(inst, AUTO_CLOSE_RANGE) -- Check this to prevents us from closing the opened container when try to go to another one
+            or actioncheck and not (CanHarvest(inst) or CanRummage(inst))
+            or cant_cookwares and table.contains(cant_cookwares, inst)
+        )
+    end)
 end
 
 local function GetDefaultCheckingContainers(inv_only)
@@ -506,21 +514,6 @@ local function StopCooking()
     end
 end
 
-local function GetClosestTarget(ents)
-    local x, y, z = ThePlayer.Transform:GetWorldPosition()
-
-    local mindistsq, target
-    for _, ent in ipairs(ents) do
-        local curdistsq = ent:GetDistanceSqToPoint(x, y, z)
-        if not mindistsq or curdistsq < mindistsq then
-            mindistsq = curdistsq
-            target = ent
-        end
-    end
-
-    return target
-end
-
 local MAX_HARVEST_DIST = 64
 local function GetHarvestTarget()
     for i = #harvestinglist, 1, -1 do
@@ -609,11 +602,7 @@ local function HarvestOnly(endless)
         StopCooking()
     end
 
-    if endless then
-        Say(GetString("harvest_only_endless"))
-    else
-        Say(GetString("harvest_only"))
-    end
+    Say(GetString(endless and "harvest_only_endless" or "harvest_only"))
 
     if ac_thread then
         harvest_thread()
@@ -651,12 +640,13 @@ local function ShouldKeepHarvertTarget()
         and CanHarvest(harvesting_cookware)
 end
 
-local function TryHarvestWhenFilling(cookware, cookpots)
+local function TryHarvestWhenFilling(cookware, cookwares)
+    if not should_harvest then return end
     local harvest_cookware
     if ShouldKeepHarvertTarget() and harvesting_cookware:IsNear(cookware, AUTO_CLOSE_RANGE) then
         harvest_cookware = harvesting_cookware
     else
-        harvest_cookware = FindCookware(cookpots and "cookpot" or "portablespicer", true, cookpots, cookware, {cookware})
+        harvest_cookware = GetClosestValidCookware(cookwares, true, cookware, {cookware})
     end
     if harvest_cookware then
         harvesting_cookware = harvest_cookware
@@ -664,11 +654,11 @@ local function TryHarvestWhenFilling(cookware, cookpots)
     end
 end
 
-local function DoFillUpAndCook(cookware, items, cookpots)
+local function DoFillUpAndCook(cookware, items, cookwares)
     local container_replica = cookware.replica.container
     repeat
         if speedy_mode then
-            TryHarvestWhenFilling(cookware, cookpots)
+            TryHarvestWhenFilling(cookware, cookwares)
 
             local steps = GetItems(FormatItemsAmount(items))
             if steps then
@@ -684,11 +674,11 @@ local function DoFillUpAndCook(cookware, items, cookpots)
             Sleep(SLEEP_TIME)
         else
             for i, v in ipairs(items) do
-                TryHarvestWhenFilling(cookware, cookpots)
+                TryHarvestWhenFilling(cookware, cookwares)
 
                 local container, slot = GetItemSlot(v)
                 if container then
-                    if cookware.prefab == "portablespicer" then
+                    if IsCookwareMorph("portablespicer", cookware.prefab) then
                         container:MoveItemFromAllOfSlot(slot, cookware)
                         Sleep(SLEEP_TIME)
 
@@ -719,12 +709,10 @@ local function DoFillUpAndCook(cookware, items, cookpots)
     harvesting_cookware = nil
 end
 
-local function AutoCooking(items, cookpots)
+local function AutoCooking(items, cookwares)
 
     last_recipe = items
-    last_recipe_type = cookpots and COOKING or SEASONING
-
-    local cookware_type = cookpots and "cookpot" or "portablespicer"
+    last_recipe_type = cookwares and COOKING or SEASONING
 
     ac_thread = ThePlayer:StartThread(function()
 
@@ -742,6 +730,7 @@ local function AutoCooking(items, cookpots)
                 end
             end
 
+            -- Check if we need to keep a container open to have enough items to cook
             local opened_container
             if not HaveEnoughItems(items, GetDefaultCheckingContainers(true)) then
                 for container in pairs(GetOpenContainers()) do
@@ -757,12 +746,12 @@ local function AutoCooking(items, cookpots)
                 if not opened_container then break end
             end
 
-            cookware = cookware or FindCookware(cookware_type, true, cookpots, opened_container)
+            cookware = cookware or GetClosestValidCookware(cookwares, true, opened_container)
             if not cookware then
                 repeat
                     TryWalkTo(GetHarvestTarget())
                     Sleep(SLEEP_TIME)
-                    cookware = FindCookware(cookware_type, true, cookpots, opened_container)
+                    cookware = GetClosestValidCookware(cookwares, true, opened_container)
                 until cookware
             end
 
@@ -775,7 +764,7 @@ local function AutoCooking(items, cookpots)
                     StopCooking()
                     return
                 end
-                DoFillUpAndCook(cookware, items, cookpots)
+                DoFillUpAndCook(cookware, items, cookwares)
 
             elseif CanHarvest(cookware) then
                 DoHarvest(cookware)
@@ -787,6 +776,7 @@ local function AutoCooking(items, cookpots)
 
         end
 
+        should_harvest = true
         HarvestOnly()
         -- Will be stopped from harvest part
         -- StopCooking()
@@ -798,7 +788,7 @@ local function GetStartingItems(use_last_recipe)
         return last_recipe, last_recipe_type
     end
     -- Cookware -> Backpack -> Inventory
-    local items, cooking_type = CheckCookwareItems()
+    local items, cooking_type, cookware = CheckCookwareItems()
     if not items then
         local overflow = ThePlayer.replica.inventory:GetOverflowContainer()
         if overflow then
@@ -808,14 +798,66 @@ local function GetStartingItems(use_last_recipe)
             return CheckInventoryItems()
         end
     end
-    return items, cooking_type
+    return items, cooking_type, cookware
 end
 
-local function Start(use_last_recipe)
+local function GetStartingCookwares(first_cookware, items, cooking_type)
+
+    local cookwares = { first_cookware }
+    local target_prefab = first_cookware.prefab
+    local x, _, z = first_cookware.Transform:GetWorldPosition()
+    local ents = TheSim:FindEntities(x, 0, z, STEWER_RANGE, COOKWARE_MUSTTAGS, COOKWARE_CANTTAGS)
+
+    if not should_harvest or cooking_type ~= COOKING or TheInput:IsKeyDown(KEY_SHIFT) then
+        for _, ent in ipairs(ents) do
+            if IsCookwareMorph(target_prefab, ent.prefab) then
+                table.insert(cookwares, ent)
+            end
+        end
+        return cookwares
+    end
+
+    local item_prefabs = {}
+    for i, v in ipairs(items) do
+        item_prefabs[i] = items[i].prefab
+    end
+    local _, cookingtime = cooking.CalculateRecipe(target_prefab, item_prefabs)
+    cookingtime = cookingtime * TUNING.BASE_COOK_TIME
+
+    if target_prefab == "portablecookpot" then
+        cookingtime = cookingtime * TUNING.PORTABLE_COOK_POT_TIME_MULTIPLIER
+
+    elseif target_prefab == "medal_cookpot" and rawget(_G, TUNING_MEDAL) and TUNING_MEDAL.PORTABLE_COOK_POT_TIME_MULTIPLIER then  -- For Functional Medal Mod
+        cookingtime = cookingtime * TUNING_MEDAL.PORTABLE_COOK_POT_TIME_MULTIPLIER
+
+    end
+
+    local needed_num = math.ceil(cookingtime / cookpots_num_divisor) + 1
+    local cur_num = 0
+    for _, ent in ipairs(ents) do
+        if IsCookwareMorph(target_prefab, ent.prefab) then
+            table.insert(cookwares, ent)
+            cur_num = cur_num + 1
+            if cur_num == needed_num then
+                break
+            end
+        end
+    end
+    return cookwares
+
+end
+
+local function Start(use_last_recipe, override_data)
 
     if ac_thread then StopCooking() return end
 
-    local items, cooking_type = GetStartingItems(use_last_recipe)
+    local items, cooking_type, start_cookware
+    if override_data then
+        items, cooking_type, start_cookware = unpack(override_data)
+    else
+        items, cooking_type, start_cookware = GetStartingItems(use_last_recipe)
+    end
+
     if not items then
         HarvestOnly(true)
         return
@@ -826,70 +868,19 @@ local function Start(use_last_recipe)
     end
 
     ismasterchef = ThePlayer:HasTag("masterchef")
-    if cooking_type == SEASONING then
-        -- if ThePlayer:HasTag("masterchef") then
-            if not FindCookware("portablespicer") then
-                Say(GetString(ismasterchef and "no_portablespicer" or "no_masterchef"))
-                return false
-            end
-            AutoCooking(items)
-            return true
-        -- else
-        --     Say(GetString("no_masterchef"))
-        --     return false
-        -- end
+    should_harvest = not TheInput:IsKeyDown(KEY_CTRL)
+
+    local first_cookware = start_cookware or GetStartCookware(cooking_type)
+
+    if first_cookware then
+        AutoCooking(items, GetStartingCookwares(first_cookware, items, cooking_type))
+
+    elseif cooking_type == SEASONING then
+        Say(GetString(ismasterchef and "no_portablespicer" or "no_masterchef"))
+
     elseif cooking_type == COOKING then
+        Say(GetString("no_cookpot"))
 
-        local firstcookpot = FindCookware("cookpot")
-        local cookpots = { firstcookpot }
-
-        if firstcookpot then
-
-            local x, _, z = firstcookpot.Transform:GetWorldPosition()
-            local ents = TheSim:FindEntities(x, 0, z, STEWER_RANGE, COOKWARE_MUSTTAGS, COOKWARE_CANTTAGS)
-
-            if TheInput:IsKeyDown(KEY_SHIFT) then
-                for _, ent in ipairs(ents) do
-                    if IsCookwareMorph(firstcookpot.prefab, ent.prefab) then
-                        table.insert(cookpots, ent)
-                    end
-                end
-                AutoCooking(items, cookpots)
-                return
-            end
-
-            local items_prefab = {}
-            for i, v in ipairs(items) do
-                items_prefab[i] = items[i].prefab
-            end
-            local _, cookingtime = cooking.CalculateRecipe(firstcookpot.prefab, items_prefab)
-            cookingtime = cookingtime * TUNING.BASE_COOK_TIME
-
-            if firstcookpot.prefab == "portablecookpot" then
-                cookingtime = cookingtime * TUNING.PORTABLE_COOK_POT_TIME_MULTIPLIER
-
-            elseif firstcookpot.prefab == "medal_cookpot" and rawget(_G, TUNING_MEDAL) and TUNING_MEDAL.PORTABLE_COOK_POT_TIME_MULTIPLIER then  -- For Functional Medal Mod
-                cookingtime = cookingtime * TUNING_MEDAL.PORTABLE_COOK_POT_TIME_MULTIPLIER
-
-            end
-
-            local needed_num = math.ceil(cookingtime / cookpots_num_divisor) + 1
-            local cur_num = 0
-            for _, ent in ipairs(ents) do
-                if IsCookwareMorph(firstcookpot.prefab, ent.prefab) then
-                    table.insert(cookpots, ent)
-                    cur_num = cur_num + 1
-                    if cur_num == needed_num then
-                        break
-                    end
-                end
-            end
-            AutoCooking(items, cookpots)
-            return true
-        else
-            Say(GetString("no_cookpot"))
-            return false
-        end
     end
 
 end
@@ -904,7 +895,7 @@ for _, v in ipairs(supported_cookwares) do
                 local items = inst.replica.container and inst.replica.container:GetItems()
                 if items and type(items) == "table" then
                     last_recipe = {}
-                    last_recipe_type = inst.prefab == "portablespicer" and SEASONING or COOKING
+                    last_recipe_type = IsCookwareMorph("portablespicer", inst.prefab) and SEASONING or COOKING
                     for slot, item in pairs(items) do
                         table.insert(last_recipe, item)
                     end
@@ -960,7 +951,7 @@ AddKeyUpHandlerForConfig("last_recipe_key", function()
     if ac_thread then StopCooking() return end
 
     if not HaveEnoughItems(last_recipe) then
-        --Say(GetString("unable_cook_last_recipe"))
+        -- Say(GetString("unable_cook_last_recipe"))
         HarvestOnly(true)
         return
     end
@@ -973,12 +964,10 @@ AddKeyUpHandlerForConfig("integrated_key", function()
 
     if ac_thread then StopCooking() return end
 
-    local items, cooking_type = CheckCookwareItems()
+    local items, cooking_type, cookware = CheckCookwareItems()
     if items then
-        last_recipe = items
-        last_recipe_type = cooking_type
         Say(GetString("start"))
-        Start(true)
+        Start(true, {items, cooking_type, cookware})
 
     elseif last_recipe and HaveEnoughItems(last_recipe) then
         Say(GetString("last_recipe"))
