@@ -604,6 +604,8 @@ local function HarvestOnly(endless)
 
     Say(GetString(endless and "harvest_only_endless" or "harvest_only"))
 
+    should_harvest = true
+
     if ac_thread then
         harvest_thread()
     else
@@ -776,7 +778,6 @@ local function AutoCooking(items, cookwares)
 
         end
 
-        should_harvest = true
         HarvestOnly()
         -- Will be stopped from harvest part
         -- StopCooking()
