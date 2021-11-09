@@ -807,7 +807,7 @@ local function GetStartingCookwares(first_cookware, items, cooking_type)
     local cookwares = { first_cookware }
     local target_prefab = first_cookware.prefab
     local x, _, z = first_cookware.Transform:GetWorldPosition()
-    local ents = TheSim:FindEntities(x, 0, z, STEWER_RANGE, COOKWARE_MUSTTAGS, COOKWARE_CANTTAGS)
+    local ents = TheSim:FindEntities(x, 0, z, STEWER_RANGE, COOKWARE_MUSTTAGS, ismasterchef and COOKWARE_CANTTAGS or NO_MASTERCHEF_CANTTAGS)
 
     if not should_harvest or cooking_type ~= COOKING or TheInput:IsKeyDown(KEY_SHIFT) then
         for _, ent in ipairs(ents) do
