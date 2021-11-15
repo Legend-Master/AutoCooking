@@ -713,9 +713,6 @@ end
 
 local function AutoCooking(items, cookwares)
 
-    last_recipe = items
-    last_recipe_type = cookwares and COOKING or SEASONING
-
     ac_thread = ThePlayer:StartThread(function()
 
         while ThePlayer:IsValid() do
@@ -874,6 +871,7 @@ local function Start(use_last_recipe, override_data)
     local first_cookware = start_cookware or GetStartCookware(cooking_type)
 
     if first_cookware then
+        last_recipe, last_recipe_type = items, cooking_type
         AutoCooking(items, GetStartingCookwares(first_cookware, items, cooking_type))
 
     elseif cooking_type == SEASONING then
