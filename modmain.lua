@@ -913,29 +913,31 @@ for control = CONTROL_ATTACK, CONTROL_MOVE_RIGHT do
     interrupt_controls[control] = true
 end
 
-ENV.AddComponentPostInit("playercontroller", function(self)
-    if self.inst ~= ThePlayer then return end
+local PlayerController = require("components/playercontroller")
 
-    self.inst:ListenForEvent("aqp_threadstart", StopCooking) -- For AttackQueue Plus
-
-    local PlayerControllerOnControl = self.OnControl
-    self.OnControl = function(self, control, down, ...)
+local on_control = PlayerController.OnControl
+function PlayerController:OnControl(control, down, ...)
+    if down and InGame() then
         local mouse_control = mouse_controls[control]
         local interrupt_control = interrupt_controls[control]
-        if down and InGame() then
-            if ac_thread then
-                if interrupt_control or mouse_control and not TheInput:GetHUDEntityUnderMouse() then
-                    StopCooking()
-                end
-            elseif key_2 ~= -1 and control == CONTROL_PRIMARY and TheInput:IsKeyDown(key_2) then
-                local ent = TheInput:GetWorldEntityUnderMouse()
-                if ent and table.contains(supported_cookwares, ent.prefab) and IsValidEntity(ent) then
-                    Start()
-                    return
-                end
+        if ac_thread then
+            if interrupt_control or mouse_control and not TheInput:GetHUDEntityUnderMouse() then
+                StopCooking()
+            end
+        elseif key_2 ~= -1 and control == CONTROL_PRIMARY and TheInput:IsKeyDown(key_2) then
+            local ent = TheInput:GetWorldEntityUnderMouse()
+            if ent and table.contains(supported_cookwares, ent.prefab) and IsValidEntity(ent) then
+                Start()
+                return
             end
         end
-        return PlayerControllerOnControl(self, control, down, ...)
+    end
+    return on_control(self, control, down, ...)
+end
+
+ENV.AddComponentPostInit("playercontroller", function(self)
+    if self.inst == ThePlayer then
+        self.inst:ListenForEvent("aqp_threadstart", StopCooking) -- For AttackQueue Plus
     end
 end)
 
