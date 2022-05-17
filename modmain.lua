@@ -481,10 +481,9 @@ local function GetItemSlot(item)
     for _, container in orderedPairs(GetDefaultCheckingContainers()) do
         if type(container) == "table" and container.GetItems then
             local items = container:GetItems()
-            for k, v in orderedPairs(items) do
+            for _, k, v in sorted_pairs(items) do
                 -- If given item is valid and we can find it's slot, return it
                 if item_valid and v == item or not item_valid and v.prefab == item.prefab then
-                    items.__orderedIndex = nil
                     return container, k
                 -- If we can't, try to cache the item with same prefab/type
                 elseif not final_container and v.prefab == item.prefab then
@@ -503,7 +502,7 @@ local function GetItems(required_items)
     for _, container in orderedPairs(GetDefaultCheckingContainers()) do
         if type(container) == "table" and container.GetItems then
             local items = container:GetItems()
-            for slot, item in orderedPairs(items) do
+            for _, slot, item in sorted_pairs(items) do
                 if required_items[item.prefab] then
                     local steps = item.replica.stackable and math.min(item.replica.stackable:StackSize(), required_items[item.prefab]) or 1
                     for i = 1, steps do
@@ -514,7 +513,6 @@ local function GetItems(required_items)
                         required_items[item.prefab] = nil
                     end
                     if IsTableEmpty(required_items) then
-                        items.__orderedIndex = nil
                         return final_steps
                     end
                 end
