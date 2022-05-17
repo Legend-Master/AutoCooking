@@ -1,7 +1,7 @@
 name = "Auto Cooking"
 description = ""
 author = "Tony"
-version = "2.2.3"
+version = "2.2.4"
 icon_atlas = "modicon.xml"
 icon = "modicon.tex"
 dst_compatible = true
