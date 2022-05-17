@@ -1,3 +1,33 @@
+--[[
+
+I don't really wanna make too much of modded cookware supports for this mod
+since over all, a lot of decisions are made based on the vanilla game,
+and may not suit for modded cookwares.
+
+But if you got something similar to the vanilla and want to make a support for this mod,
+you could do the following in your mod (e.g.):
+
+local cookware_morphs = {
+    cookpot = { -- What morph is it (one of [cookpot, portablecookpot, portablespicer])
+        deluxpot = true, -- Your cookware name
+    }
+}
+
+---------------------------------
+Do this if you're on mod env
+local AUTO_COOKING_COOKWARES = GLOBAL.rawget(GLOBAL, "AUTO_COOKING_COOKWARES") or {}
+GLOBAL.AUTO_COOKING_COOKWARES = AUTO_COOKING_COOKWARES
+
+Or this if you're on GLOBAL env
+AUTO_COOKING_COOKWARES = rawget(_G, "AUTO_COOKING_COOKWARES") or {}
+---------------------------------
+
+for base, morphs in pairs(cookware_morphs) do
+    AUTO_COOKING_COOKWARES[base] = shallowcopy(morphs, AUTO_COOKING_COOKWARES[base])
+end
+
+]]
+
 local function GetKeyFromConfig(config)
     local key = GetModConfigData(config, true)
     if key == "no_toggle_key" then
@@ -34,25 +64,33 @@ local COOKWARE_CANTTAGS = {"INLIMBO", "burnt"}
 local NO_MASTERCHEF_CANTTAGS = {"INLIMBO", "burnt", "mastercookware"}
 
 local supported_cookwares = {
-    "cookpot",
-    "portablecookpot",
-    "portablespicer",
-    "archive_cookpot",
-    "deluxpot",         -- From Deluxe cooking pot
-    "medal_cookpot",    -- From Functional medal
+    cookpot = true,
+    portablecookpot = true,
+    portablespicer = true,
+    archive_cookpot = true,
+    deluxpot = true,         -- From Deluxe cooking pot
+    medal_cookpot = true,    -- From Functional medal
 }
-local cookware_morph = {
+local cookware_morphs = {
     cookpot = {
-        "portablecookpot",
-        "deluxpot",
-        "archive_cookpot"
+        portablecookpot = true,
+        deluxpot = true,
+        archive_cookpot = true,
     },
     portablecookpot = {
-        "medal_cookpot"
+        medal_cookpot = true,
     }
 }
-for _, v in ipairs(cookware_morph.portablecookpot) do
-    table.insert(cookware_morph.cookpot, v)
+for cookware in pairs(cookware_morphs.portablecookpot) do
+    cookware_morphs.cookpot[cookware] = true
+end
+
+local AUTO_COOKING_COOKWARES = rawget(_G, "AUTO_COOKING_COOKWARES")
+if AUTO_COOKING_COOKWARES then
+    for base, morphs in pairs(AUTO_COOKING_COOKWARES) do
+        shallowcopy(morphs, supported_cookwares)
+        cookware_morphs[base] = shallowcopy(morphs, cookware_morphs[base])
+    end
 end
 
 local ac_thread
@@ -171,8 +209,12 @@ local function GetClosestTarget(ents, test_fn)
 end
 
 local function IsCookwareMorph(base, prefab)
-    return base == prefab
-        or table.contains(cookware_morph[base], prefab)
+    if base == prefab then
+        return true
+    end
+    local morphs = cookware_morphs[base]
+    return morphs
+        and morphs[prefab]
 end
 
 -- Sigh, why inventory_replica.GetOpenContainers not checking isopen...
@@ -336,7 +378,7 @@ local function CheckCookwareItems()
     local item_list = {}
     for container in pairs(GetOpenContainers()) do
         if container.replica.container
-            and table.contains(supported_cookwares, container.prefab)
+            and supported_cookwares[container.prefab]
             and container.replica.container.widget.buttoninfo.validfn(container) then
 
             for slot, item in pairs(container.replica.container:GetItems()) do
@@ -379,7 +421,7 @@ local function GetDefaultCheckingContainers(inv_only)
         table.insert(containers, inventory:GetOverflowContainer())
     else
         for container in pairs(GetOpenContainers()) do
-            if not table.contains(supported_cookwares, container.prefab) then
+            if not supported_cookwares[container.prefab] then
                 local container_replica = container.replica.container
                 if container_replica then
                     table.insert(containers, container_replica)
@@ -573,7 +615,7 @@ local function TryWalkTo(target)
 end
 
 local function find_endless_target(inst)
-    return table.contains(supported_cookwares, inst.prefab)
+    return supported_cookwares[inst.prefab]
         and CanHarvest(inst)
 end
 
@@ -886,13 +928,13 @@ end
 
 local containers = require("containers")
 local params = containers.params
-for _, v in ipairs(supported_cookwares) do
-    local OldWidgetFn = params[v] and params[v].widget and params[v].widget.buttoninfo and params[v].widget.buttoninfo.fn
-    if OldWidgetFn then
-        params[v].widget.buttoninfo.fn = function(inst, ...)
+for cookware in pairs(supported_cookwares) do
+    local btn_fn = params[cookware] and params[cookware].widget and params[cookware].widget.buttoninfo and params[cookware].widget.buttoninfo.fn
+    if btn_fn then
+        params[cookware].widget.buttoninfo.fn = function(inst, ...)
             if not ac_thread then
                 local items = inst.replica.container and inst.replica.container:GetItems()
-                if items and type(items) == "table" then
+                if type(items) == "table" then
                     last_recipe = {}
                     last_recipe_type = IsCookwareMorph("portablespicer", inst.prefab) and SEASONING or COOKING
                     for slot, item in pairs(items) do
@@ -900,7 +942,7 @@ for _, v in ipairs(supported_cookwares) do
                     end
                 end
             end
-            return OldWidgetFn(inst, ...)
+            return btn_fn(inst, ...)
         end
     end
 end
@@ -926,7 +968,7 @@ function PlayerController:OnControl(control, down, ...)
             end
         elseif key_2 ~= -1 and control == CONTROL_PRIMARY and TheInput:IsKeyDown(key_2) then
             local ent = TheInput:GetWorldEntityUnderMouse()
-            if ent and table.contains(supported_cookwares, ent.prefab) and IsValidEntity(ent) then
+            if ent and supported_cookwares[ent.prefab] and IsValidEntity(ent) then
                 Start()
                 return
             end
