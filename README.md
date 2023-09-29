@@ -2,27 +2,46 @@
 
 A Don't Starve Together mod for auto cooking
 
+## Usage
+
+To start auto cooking:
+
+1. Choose an Integrated Key in the mod settings
+2. Put the materials in to a cookware (cookpot, seasoning station, ...)
+3. Press the Integrated Key
+
+If you have cooked something before, press the Integrated Key will start to repeat that recipe, and if you don't have enough materials for it, it will go in to "endless harvest mode" which will harvest all cookpots/seasoning stations near you endlessly
+
+To stop, simply move or click on something or press the Integrated Key again
+
 ## Features
+
+- It will remember the cooking material and fill the cookpot/seasoning station by using materials from any of opened containers
+- It will select just enough cookpots for cooking to avoid using too many cookpots (Just because that looks so stupid, e.g. You want to cook some icecreams, and you got 20 cookpots, it will eventually only use the last 4 cookpots...)
+- It will try to go back to the first cookpot to wait for it to finish
+- If you're realy laggy, try to use "Laggy Mode", but it still has chance to open and close the cookpot over and over again
+- Hold control when starting auto cooking to disable harvesting
+- You can turn on Ultra Fast mode in the settings to make it fill in all the materials at once
+
+## Deprecated
+
+Note: Although they're deprecated, they're on by default to not break the expectation of early users
 
 - Press start button to start auto cooking by using 2/4 slots of items from cookpot/seasoning station/backpack/inventory
 - Pressing start button when don't have enough items, it will go in to "endless harvest mode" which will harvest all cookpots/seasoning stations near you endlessly
-- You could stop the cooking by simply using any movement, primary, secondary, attack, or action key, just like the way you cancel the action queue from Action Queue Reborn
-- It will remember the cooking material and fill the cookpot/seasoning station by using materials from any of opened containers
-- It will select just enough cookpots for cooking to avoid using too many cookpots (Just because that looks so stupid, e.g. You want to cook some icecreams, and you got 20 cookpots, it will eventually only use the last 4 cookpots...)
 - Press "Lastest Recipe Key" to cook lastest recipe you ever did
-- If you're realy laggy, try to use "Laggy Mode", but it still has chance to open and close the cookpot over and over again
 
 ## Configable Options
 
 - Language: Auto / English / Simplified Chinese
-- Key to start the cooking (Default: F5)
-- Action Key 2, this key + click on cookware to start (Default: Off)
-- Key to start the cooking lastest recipe (Default: Home)
-- Integrated Key, start cooking items from opened cookware or lastest cooking recipe / endless harvest mode (Default: Off)
-- Ultra Fast Mode (Default: Off)
-- Num of Cookpots
+- Action Key: Key to start the cooking (Default: F5) (Deprecated, please use Integrated Key instead)
+- Action Key 2: this key + click on cookware to start (Default: Off) (Deprecated, please use Integrated Key instead)
+- Lastest Recipe Key: Key to start the cooking lastest recipe (Default: Home) (Deprecated, please use Integrated Key instead)
+- Integrated Key: Start cooking items from opened cookware or lastest cooking recipe / endless harvest mode (Default: Off)
+- Ultra Fast Mode: Put in all the materials in the blink of an eye (Default: Off)
+- Num of Cookpots: Amount of cookpots compare to cooking time to use, hold shift when starting auto cooking to select infinite
 - Laggy mode: Off / On / In-game button (Default: Off)
-- If you choose "In-game button" from "Laggy Mode", you can give it a key to toggle laggy mode in game (Default: Right Shift)
+- Laggy Mode Toggle Key: If you choose "In-game button" from "Laggy Mode", you can give it a key to toggle laggy mode in game (Default: Right Shift)
 
 ## Known Issues
 
@@ -68,4 +87,4 @@ end
 
 ---
 
-Special Thanks：秋一(Civi) for testing and suggesting those amazing ideas
+Special Thanks: 秋一(Civi) for testing and suggesting those amazing ideas

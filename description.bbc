@@ -1,27 +1,45 @@
 GitHub Repo (check out README if you wanna make supports for modded cookwares): https://github.com/Legend-Master/AutoCooking
 
+[h1]Usage[/h1]
+To start auto cooking:
+[olist]
+[*]Choose an Integrated Key in the mod settings
+[*]Put the materials in to a cookware (cookpot, seasoning station, ...)
+[*]Press the Integrated Key
+[/olist]
+If you have cooked something before, press the Integrated Key will start to repeat that recipe, and if you don't have enough materials for it, it will go in to "endless harvest mode" which will harvest all cookpots/seasoning stations near you endlessly
+
+To stop, simply move or click on something or press the Integrated Key again
+
 [h1]Features[/h1]
+[list]
+[*]It will remember the cooking material and fill the cookpot/seasoning station by using materials from any of opened containers
+[*]It will select just enough cookpots for cooking to avoid using too many cookpots (Just because that looks so stupid, e.g. You want to cook some icecreams, and you got 20 cookpots, it will eventually only use the last 4 cookpots...)
+[*]It will try to go back to the first cookpot to wait for it to finish
+[*]If you're realy laggy, try to use "Laggy Mode", but it still has chance to open and close the cookpot over and over again
+[*]Hold control when starting auto cooking to disable harvesting
+[*]You can turn on Ultra Fast mode in the settings to make it fill in all the materials at once
+[/list]
+
+[h1]Deprecated[/h1]
+Note: Although they're deprecated, they're on by default to not break the expectation of early users
 [list]
 [*]Press start button to start auto cooking by using 2/4 slots of items from cookpot/seasoning station/backpack/inventory
 [*]Pressing start button when don't have enough items, it will go in to "endless harvest mode" which will harvest all cookpots/seasoning stations near you endlessly
-[*]You could stop the cooking by simply using any movement, primary, secondary, attack, or action key, just like the way you cancel the action queue from Action Queue Reborn
-[*]It will remember the cooking material and fill the cookpot/seasoning station by using materials from any of opened containers
-[*]It will select just enough cookpots for cooking to avoid using too many cookpots (Just because that looks so stupid, e.g. You want to cook some icecreams, and you got 20 cookpots, it will eventually only use the last 4 cookpots...)
 [*]Press "Lastest Recipe Key" to cook lastest recipe you ever did
-[*]If you're realy laggy, try to use "Laggy Mode", but it still has chance to open and close the cookpot over and over again
 [/list]
 
 [h1]Configable Options[/h1]
 [list]
 [*]Language: Auto / English / Simplified Chinese
-[*]Key to start the cooking (Default: F5)
-[*]Action Key 2, this key + click on cookware to start (Default: Off)
-[*]Key to start the cooking lastest recipe (Default: Home)
-[*]Integrated Key, start cooking items from opened cookware or lastest cooking recipe / endless harvest mode (Default: Off)
-[*]Ultra Fast Mode (Default: Off)
-[*]Num of Cookpots
+[*]Action Key: Key to start the cooking (Default: F5) (Deprecated, please use Integrated Key instead)
+[*]Action Key 2: this key + click on cookware to start (Default: Off) (Deprecated, please use Integrated Key instead)
+[*]Lastest Recipe Key: Key to start the cooking lastest recipe (Default: Home) (Deprecated, please use Integrated Key instead)
+[*]Integrated Key: Start cooking items from opened cookware or lastest cooking recipe / endless harvest mode (Default: Off)
+[*]Ultra Fast Mode: Put in all the materials in the blink of an eye (Default: Off)
+[*]Num of Cookpots: Amount of cookpots compare to cooking time to use, hold shift when starting auto cooking to select infinite
 [*]Laggy mode: Off / On / In-game button (Default: Off)
-[*]If you choose "In-game button" from "Laggy Mode", you can give it a key to toggle laggy mode in game (Default: Right Shift)
+[*]Laggy Mode Toggle Key: If you choose "In-game button" from "Laggy Mode", you can give it a key to toggle laggy mode in game (Default: Right Shift)
 [/list]
 
 [h1]Known Issues[/h1]
@@ -29,30 +47,48 @@ GitHub Repo (check out README if you wanna make supports for modded cookwares): 
 [*]When you hold something on you mouse, it will pause the cooking, and I have no idea how to fix it since you can't do a rummage action when you have the activeitem (& It wouldn't start cooking when something is on you mouse)
 [/list]
 
-Special Thanks：秋一(Civi) for testing and suggesting those amazing ideas
+Special Thanks: 秋一(Civi) for testing and suggesting those amazing ideas
 
+---
 
 GitHub 仓库（看 README 如果你想给 mod 厨具做兼容）: https://github.com/Legend-Master/AutoCooking
 
-[h1]功能[/h1]
+[h1]使用方法[/h1]
+要开始自动做饭:
+[olist]
+[*]在 mod 设置里选择一个集成键（Integrated Key）
+[*]把材料放进厨具（锅子，调味站， ...）
+[*]按下集成键
+[/olist]
+如果你之前做过其他的东西，按下集成键会重复上个配方，如果这时候你的物品不够用就会进入无尽收获模式，不断寻找和收获边上的锅子
+
+想要停下来的话，可以随意移动、点地面或者再按一下集成键
+
+[h1]功能/特点[/h1]
 [list]
-[*]按下启动按键后会按照背包前 4 格/2 格的物品选择锅或者调料站（如果没有物品/无背包/物品不匹配会使用物品栏前 4/2 个连续的格子里面的物品，如果依然没有将会启动无尽收获模式，收获附近所有烹饪锅和调料站内的物品）（大厨会优先使用大厨自己的锅，非大厨不会用大厨锅和调料站）（如果锅/调料站里有物品会先把物品拿出来再开始做），填充材料做饭并收获，前 4 格/2 格的物品用完之后会使用物品栏（包括打开的冰箱或箱子等容器）里的物品进行填充。
-[*]在需要的锅或调料站里放好需要/足够的材料后按下启动键可以按照该容器里的物品进行烹饪
+[*]会使用所有打开的容器里的材料
 [*]如果是做饭的话会判断做饭所需时间选择对应的锅子数量（比如做失败料理只选 3 口大厨锅，肉丸会选 8 口）
 [*]当没有可以烹饪/收获的锅子的情况下，会自动寻找最早烹饪过的锅子，走向它，等待收获
 [*]在填充锅子的同时会自动尝试去收获距离足够近的锅子
-[*]按下启动烹饪上个配方的按键后会使用上一次烹饪的配方填充材料（可设置）
-[*]中途想要取消做饭可以通过移动、攻击键、操作键以及鼠标键取消（使用的是 action queue reborn 的代码，取消方式和排队论一样）
 [*]如果延迟很高，mod 持续开关锅，请调到高延迟模式
-[*]按键在 mod 设置里面都是可以调的，中英文默认英文，可以调成中文
+[*]在开始做饭的时候按住 ctrl 可以只做不收
+[*]打开超速模式可以一次把所有材料都放进锅里
+[/list]
+
+[h1]已弃用[/h1]
+注意：虽然这些功能已经被弃用的，但是为了让以前用的人还能像以前那样用，默认是开启的
+[list]
+[*]按下启动按键后会按照背包前 4 格/2 格的物品选择锅或者调料站（如果没有物品/无背包/物品不匹配会使用物品栏前 4/2 个连续的格子里面的物品，如果依然没有将会启动无尽收获模式，收获附近所有烹饪锅和调料站内的物品）（大厨会优先使用大厨自己的锅，非大厨不会用大厨锅和调料站）（如果锅/调料站里有物品会先把物品拿出来再开始做），填充材料做饭并收获，前 4 格/2 格的物品用完之后会使用物品栏（包括打开的冰箱或箱子等容器）里的物品进行填充。
+[*]在需要的锅或调料站里放好需要/足够的材料后按下启动键可以按照该容器里的物品进行烹饪
+[*]按下启动烹饪上个配方的按键后会使用上一次烹饪的配方填充材料（可设置）
 [/list]
 
 [h1]可设置选项[/h1]
 [list]
 [*]语言：自动 / 英文 / 中文
-[*]启动自动烹饪的按键（默认 F5）
-[*]第二启动键，按住这个键加左键厨具开始做饭（默认 无）
-[*]启动烹饪上次配方的按键（默认 HOME）
+[*]启动自动烹饪的按键（默认 F5）（已弃用，请换用集成键）
+[*]第二启动键，按住这个键加左键厨具开始做饭（默认 无）（已弃用，请换用集成键）
+[*]启动烹饪上次配方的按键（默认 HOME）（已弃用，请换用集成键）
 [*]集成键，优先级按顺序：锅里材料够用锅里材料做，有上次配方切有足够材料用上次配方做，无尽收获（默认 关）
 [*]究极快模式（默认 关）
 [*]选锅数量
