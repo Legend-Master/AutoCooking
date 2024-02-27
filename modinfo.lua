@@ -11,7 +11,8 @@ all_clients_require_mod = false
 api_version = 10
 
 -- Make sure we load after other mods to hook their containers data
-priority = -10000
+-- 100,000
+priority = -100000
 
 local boolean = {{description = "Yes", data = true}, {description = "No", data = false}}
 local string = ""
