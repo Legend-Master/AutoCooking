@@ -30,22 +30,12 @@ end
 
 modimport("keybind_magic")
 
-local function GetKeyFromConfig(config)
-    local key = GetModConfigData(config, true)
-    if key == "no_toggle_key" then
-        key = -1
-    elseif type(key) == "string" then
-        key = GLOBAL.rawget(GLOBAL, key)
-    end
-    return type(key) == "number" and key or -1
-end
-
 local language              = GetModConfigData("language")
 local speedy_mode           = GetModConfigData("speedy_mode")
 local cookpots_num_divisor  = GetModConfigData("cookpots_num_divisor")
 local laggy_mode            = GetModConfigData("laggy_mode")
 
-local key_2                 = GetKeyFromConfig("key_2")
+local key_2                 = 0
 
 local laggy_mode_on = laggy_mode == "on"
 
@@ -121,6 +111,10 @@ local function UpdateKeyHandler(config, key)
         key_handlers[config] = TheInput:AddKeyUpHandler(key, fn)
     else
         key_handlers[config] = nil
+    end
+
+    if config == "key_2" then
+        key_2 = key
     end
 end
 ENV.KEYBIND_MAGIC.on_keybind_changed = UpdateKeyHandler
@@ -972,7 +966,7 @@ function PlayerController:OnControl(control, down, ...)
             if interrupt_control or mouse_control and not TheInput:GetHUDEntityUnderMouse() then
                 StopCooking()
             end
-        elseif key_2 ~= -1 and control == CONTROL_PRIMARY and TheInput:IsKeyDown(key_2) then
+        elseif key_2 ~= 0 and control == CONTROL_PRIMARY and TheInput:IsKeyDown(key_2) then
             local ent = TheInput:GetWorldEntityUnderMouse()
             if ent and supported_cookwares[ent.prefab] and IsValidEntity(ent) then
                 Start()
