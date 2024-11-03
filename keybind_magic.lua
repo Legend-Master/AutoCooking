@@ -25,7 +25,7 @@ local TEMPLATES = require "widgets/redux/templates"
 
 -- Generate reverse lookup table from the one declared in modinfo.lua for config options
 local keycode2key = { [0] = "KEY_DISABLED" }
-for _, key_option in pairs(modinfo.keys) do
+for _, key_option in pairs(modinfo.keylist) do
   local varname = key_option.data
   if varname ~= "KEY_DISABLED" then
     keycode2key[rawget(G, varname)] = varname
@@ -261,7 +261,7 @@ AddClassPostConstruct("screens/redux/optionsscreen", function(self)
   local items = clist.items
   table.insert(items, clist:AddChild(Header(modinfo.name)))
   for i, config_option in ipairs(modinfo.configuration_options) do
-    if config_option.options == modinfo.keys then
+    if config_option.options == modinfo.keylist then
       table.insert(items, clist:AddChild(MakeKeybindControlEntry(self, config_option)))
     end
   end
@@ -310,7 +310,7 @@ AddClassPostConstruct('screens/redux/modconfigurationscreen', function(self)
     for _, config_option in ipairs(self.config) do
       if config_option.name == data.option.name then
         -- Skip our logic if this config option is not a keybind
-        if config_option.options ~= modinfo.keys then return result end
+        if config_option.options ~= modinfo.keylist then return result end
 
         ks.title = config_option.label
         ks.default_key = ParseKeyString(config_option.default)

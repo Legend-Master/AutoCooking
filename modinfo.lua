@@ -16,12 +16,23 @@ priority = -100000
 
 local boolean = {{description = "Yes", data = true}, {description = "No", data = false}}
 local string = ""
-local keys = {"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","LAlt","RAlt","LCtrl","RCtrl","LShift","RShift","Tab","Capslock","Space","Minus","Equals","Backspace","Insert","Home","Delete","End","Pageup","Pagedown","Print","Scrollock","Pause","Period","Slash","Semicolon","Leftbracket","Rightbracket","Backslash","Up","Down","Left","Right"}
-local keylist = {}
+local keys = { -- from STRINGS.UI.CONTROLSSCREEN.INPUTS[1] of strings.lua, need to match constants.lua too.
+    "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "Print", "ScrolLock", "Pause",
+    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+    "Escape", "Tab", "CapsLock", "LShift", "LCtrl", "LAlt", "Space", "RAlt", "RCtrl", "Period", "Slash", "RShift",
+    "Minus", "Equals", "Backspace", "LeftBracket", "RightBracket", "Backslash", "Semicolon", "Enter",
+    "Up", "Down", "Left", "Right", "Insert", "Delete", "Home", "End", "PageUp", "PageDown", -- navigation
+    "Num 0", "Num 1", "Num 2", "Num 3", "Num 4", "Num 5", "Num 6", "Num 7", "Num 8", "Num 9", -- numberic keypad
+    "Num Period", "Num Divide", "Num Multiply", "Num Minus", "Num Plus",
+    "Disabled",
+}
+-- Make visible in the modinfo object, keybind_magic.lua uses this
+keylist = {}
 for i = 1, #keys do
-    keylist[i] = {description = keys[i], data = "KEY_"..string.upper(keys[i])}
+    local key = keys[i]
+    keylist[i] = {description = key, data = "KEY_" .. key:gsub("^Num ", "KP_"):upper()}
 end
-keylist[#keylist + 1] = {description = "Disable", data = false}
 
 configuration_options =
 {
@@ -49,7 +60,7 @@ configuration_options =
         hover = "Key to start cooking(This Key + Click The Cookpot)\n启动做饭的按键（该按键 + 点击锅子）",
         label = "Action Key 2",
         options = keylist,
-        default = false
+        default = "KEY_DISABLED"
     },
     {
         name = "last_recipe_key",
@@ -63,7 +74,7 @@ configuration_options =
         hover = "Key to start cooking items from opened cookware or lastest cooking recipe\n开始做打开容器内物品或者上一次配方的按键",
         label = "Integrated Key",
         options = keylist,
-        default = false
+        default = "KEY_DISABLED"
     },
     {
         name = "speedy_mode",

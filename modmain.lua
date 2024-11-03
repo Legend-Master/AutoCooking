@@ -28,6 +28,8 @@ end
 
 ]]
 
+modimport("keybind_magic")
+
 local function GetKeyFromConfig(config)
     local key = GetModConfigData(config, true)
     if key == "no_toggle_key" then
@@ -106,16 +108,22 @@ local function InGame()
     return ThePlayer and ThePlayer.HUD and not ThePlayer.HUD:HasInputFocus()
 end
 
-local function AddKeyUpHandlerForConfig(config, fn)
-    local key = GetKeyFromConfig(config)
-    if key ~= -1 then
-        return TheInput:AddKeyUpHandler(key, function()
-            if InGame() then
-                fn()
-            end
-        end)
+local key_fn = {} -- registered at the end, search for regex "key_fn\..+ = "
+local key_handlers = {}
+local function UpdateKeyHandler(config, key)
+    local old = key_handlers[config]
+    if old then
+        old:Remove()
+    end
+
+    local fn = key_fn[config]
+    if key ~= 0 and fn then
+        key_handlers[config] = TheInput:AddKeyUpHandler(key, fn)
+    else
+        key_handlers[config] = nil
     end
 end
+ENV.KEYBIND_MAGIC.on_keybind_changed = UpdateKeyHandler
 
 local function Say(str)
     local talker = ThePlayer and ThePlayer.components.talker
@@ -981,9 +989,9 @@ ENV.AddComponentPostInit("playercontroller", function(self)
     end
 end)
 
-AddKeyUpHandlerForConfig("key", Start)
+key_fn.key = Start
 
-AddKeyUpHandlerForConfig("last_recipe_key", function()
+key_fn.last_recipe_key = function()
 
     if not last_recipe then
         Say(GetString("no_previous_recipe"))
@@ -999,9 +1007,9 @@ AddKeyUpHandlerForConfig("last_recipe_key", function()
 
     Say(GetString("last_recipe"))
     Start(true)
-end)
+end
 
-AddKeyUpHandlerForConfig("integrated_key", function()
+key_fn.integrated_key = function()
 
     if ac_thread then StopCooking() return end
 
@@ -1018,11 +1026,16 @@ AddKeyUpHandlerForConfig("integrated_key", function()
         HarvestOnly(true)
 
     end
-end)
+end
 
 if laggy_mode == "in_game" then
-    AddKeyUpHandlerForConfig("laggy_mode_key", function()
+    key_fn.laggy_mode_key = function()
         laggy_mode_on = not laggy_mode_on
         Say(GetString(laggy_mode_on and "laggy_mode_on" or "laggy_mode_off"))
-    end)
+    end
+end
+
+-- Register key functions with the initial settings from mod config
+for config, _ in pairs(key_fn) do
+  UpdateKeyHandler(config, ENV.KEYBIND_MAGIC.ParseKeyString(ENV.GetModConfigData(config)))
 end
