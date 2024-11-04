@@ -42,6 +42,11 @@ Note: Although they're deprecated, they're on by default to not break the expect
 [*]Laggy Mode Toggle Key: If you choose "In-game button" from "Laggy Mode", you can give it a key to toggle laggy mode in game (Default: Right Shift)
 [/list]
 
+[h1]Tips[/h1]
+[list]
+[*]You can enable [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2111412487]Lazy Controls[/url] to change the keybind UI in the mod configuration from a spinner to a more ergonomic keybind UI
+[/list]
+
 [h1]Known Issues[/h1]
 [list]
 [*]When you hold something on you mouse, it will pause the cooking, and I have no idea how to fix it since you can't do a rummage action when you have the activeitem (& It wouldn't start cooking when something is on you mouse)
@@ -94,6 +99,11 @@ GitHub 仓库（看 README 如果你想给 mod 厨具做兼容）: https://githu
 [*]选锅数量
 [*]高延迟模式（默认 关）
 [*]高延迟模式切换按键，仅在高延迟模式选游戏内（In Game Button）时生效（默认右 Shift）
+[/list]
+
+[h1]小窍门[/h1]
+[list]
+[*]开启 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2111412487]Lazy Controls[/url] 可以把 mod 设置页面里绑键的 UI 从转盘变成更好用的绑键 UI
 [/list]
 
 [h1]已知问题（我也不知道这些怎么解决）[/h1]
